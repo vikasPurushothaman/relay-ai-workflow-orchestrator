@@ -1,0 +1,142 @@
+Task 1.9 / Phase 1 exit document verification — 2026-09-25
+All initial checks passed. Final checks include completed Phase 1 and next-item 2.1 consistency.
+No browser/accessibility/runtime API tests executed; no application exists.
+Shell startup still reports missing Java; Python checks unaffected. Toolchain inspection is next task 2.1.
+
+$ python3 scripts/check_console.py
+PASS: five screens, API dependencies, six statuses, thirteen trace fields, fixtures, twelve test cases and Phase 1 consistency
+PASS: rejects missing screen
+PASS: rejects missing status
+PASS: rejects missing trace field
+PASS: rejects missing conflict reconciliation
+PASS: rejects broken source link
+PASS: rejects missing fixed API dependency
+PASS: rejects lost token boundary
+PASS: rejects unknown task
+9 checks passed. No browser, accessibility or runtime API tests run.
+Exit code: 0
+
+$ python3 scripts/check_recovery.py
+PASS: seven atomic boundaries, ten recovery cases, twelve future tests, SQL fences, schema/indexes and links
+PASS: nine configuration defaults, lease headroom, two backoff delays and maximum four AI attempts agree
+PASS: rejects missing generation fence
+PASS: rejects missing attempt fence
+PASS: rejects missing cancel rule
+PASS: rejects missing atomic boundary
+PASS: rejects missing queue index
+PASS: rejects unsafe lease
+PASS: rejects broken link
+PASS: rejects unknown task
+PASS: rejects missing durable retry intent
+11 checks passed. No MySQL, concurrency or crash-drill tests run.
+Exit code: 0
+
+$ python3 scripts/check_workflow_semantics.py
+PASS: links, sections, seven catalog template flags, ten validation rules, twelve test cases and seed paths
+PASS: four source seeds fit selected structural rules; 31 template references; runaway graph has 12 visits before next admission
+PASS: rejects missing node
+PASS: rejects wrong template flag
+PASS: rejects seed path drift
+PASS: rejects broken source link
+PASS: rejects missing cap rule
+PASS: rejects unknown task
+PASS: rejects lost template boundary
+9 checks passed. No application, schema-validator or template-runtime tests run.
+Exit code: 0
+
+$ python3 scripts/check_state_transitions.py
+PASS: five state sets, transition guards/membership/terminal absorption, schema, links and 12 scenarios
+PASS: rejects terminal reopening
+PASS: rejects unknown state
+PASS: rejects missing exhaustion event
+PASS: rejects missing cancellation event
+PASS: rejects missing recovery event
+PASS: rejects broken source link
+PASS: rejects unknown test owner
+PASS: rejects schema status drift
+9 checks passed. No runtime tests run.
+Exit code: 0
+
+$ python3 scripts/check_data_model.py
+PASS: six tables, required fields, links, fixed statuses, constraints/indexes and future test references
+PASS: rejects missing snapshot
+PASS: rejects missing key uniqueness
+PASS: rejects missing lease index
+PASS: rejects broken source link
+PASS: rejects wrong run status
+PASS: rejects missing same-step approval uniqueness
+PASS: rejects unknown test owner
+8 checks passed. No runtime tests run.
+Exit code: 0
+
+$ python3 scripts/check_architecture.py
+PASS: links, R/V/task references, seven handlers, eight API owners, configuration and boundaries
+PASS: rejects missing handler
+PASS: rejects broken link
+PASS: rejects unknown task
+PASS: rejects missing route
+PASS: rejects missing config consumer
+6 checks passed. No runtime tests run.
+Exit code: 0
+
+$ python3 scripts/check_requirements.py
+PASS: requirements matrix, source links, roadmap tasks, verification cases, contracts, fixtures and scope
+PASS: rejects missing fixed route
+PASS: rejects invalid task reference
+PASS: rejects missing node
+PASS: rejects wrong parameter required flag
+PASS: rejects wrong output shape
+PASS: rejects missing payload
+PASS: rejects missing seed
+PASS: rejects broken link
+PASS: rejects lost ambiguity
+PASS: rejects lost status
+PASS: rejects missing requirement
+12 checks passed (1 document validation + 11 negative mutations). No application tests run.
+Exit code: 0
+
+$ python3 scripts/check_mvp.py
+PASS: all R/V references, local links, seven nodes, fixtures and scope boundaries
+PASS: rejects omitted requirement
+PASS: rejects unknown verification case
+PASS: rejects broken source link
+PASS: rejects missing node
+PASS: rejects lost ambiguity
+6 checks passed: document consistency plus 5 invalid-copy cases. No runtime verification.
+Exit code: 0
+
+$ python3 scripts/check_capstone_review.py
+PASS: 16 pinned source files match manifest
+PASS: commit recorded
+PASS: local review links resolve
+PASS: every pack source referenced
+PASS: catalog counts match review
+PASS: fixture counts match review
+PASS: all seed and payload IDs covered
+PASS: all node types covered
+PASS: injection graph ambiguity documented
+PASS: supplied mock emits non-JSON prose
+PASS: empty-ledger false assurance reproduced offline
+PASS: checklist and next item agree
+PASS: API implementation status remains honest
+PASS: local-only publication rule preserved
+PASS: scope corrections and cancellation tracked
+PASS: runtime verification explicitly outstanding
+16 checks passed.
+Exit code: 0
+
+$ python3 docs/source-review/pack/scripts/validate_pack.py
+Pack OK:
+  7 node types, 3 trigger types
+  4 seed workflows, 8 sample payloads
+  15 NL eval cases (3 traps)
+Exit code: 0
+
+Manual console/design walkthroughs, not runtime tests:
+Q01–Q02: Memory-only token/session invalidation; workflow draft/publication views preserve semantic eligibility and safely display invalid drafts.
+Q03–Q05: API-triggered expense approval/rejection and auto branch, controlled AI triage, fixed list/trace/decision dependencies covered; no UI authoring feature.
+Q06–Q07: Delay/retry/uncertain attempts, loop identities and cap failure represented without fake rows, completion or zero usage.
+Q08–Q10: Conflict/lost response reconcile from server evidence; disappearing pending row is not proof of approval; no automatic mutation replay; out-of-order response invalidation and bounded polling documented.
+Q11–Q12: Redaction/escaping, null versus zero, keyboard/focus and small-screen acceptance assigned to future browser checks. Injection safety shown through actual evidence; no forced branch resolving D01.
+Phase 1 exit: All 22 requirements retain implementation owners and 23 verification cases. Architecture, data model, states, semantics, recovery and console documents cover required scope. Fixed contract/routes/statuses and pinned hashes pass existing checks. D01 remains explicitly unresolved and blocks only affected later injection acceptance. No claim of implemented product, SQL/runtime safety or completed demo.
+No source pack modifications, new backend routes or remote publication.

@@ -1,0 +1,47 @@
+Task 1.2 document verification — 2026-09-25
+
+$ python3 docs/source-review/pack/scripts/validate_pack.py
+Pack OK:
+  7 node types, 3 trigger types
+  4 seed workflows, 8 sample payloads
+  15 NL eval cases (3 traps)
+Exit code: 0
+
+$ python3 scripts/check_capstone_review.py
+PASS: 16 pinned source files match manifest
+PASS: commit recorded
+PASS: local review links resolve
+PASS: every pack source referenced
+PASS: catalog counts match review
+PASS: fixture counts match review
+PASS: all seed and payload IDs covered
+PASS: all node types covered
+PASS: injection graph ambiguity documented
+PASS: supplied mock emits non-JSON prose
+PASS: empty-ledger false assurance reproduced offline
+PASS: checklist and next item agree
+PASS: API implementation status remains honest
+PASS: local-only publication rule preserved
+PASS: scope corrections and cancellation tracked
+PASS: runtime verification explicitly outstanding
+16 checks passed.
+Exit code: 0
+
+$ python3 scripts/check_requirements.py
+PASS: requirements matrix, source links, roadmap tasks, verification cases, contracts, fixtures and scope
+PASS: rejects missing fixed route
+PASS: rejects invalid task reference
+PASS: rejects missing node
+PASS: rejects wrong parameter required flag
+PASS: rejects wrong output shape
+PASS: rejects missing payload
+PASS: rejects missing seed
+PASS: rejects broken link
+PASS: rejects lost ambiguity
+PASS: rejects lost status
+PASS: rejects missing requirement
+12 checks passed (1 document validation + 11 negative mutations). No application tests run.
+Exit code: 0
+
+PASS: roadmap advances to 1.3 after completed 1.2; incorrect next-item mutation rejected.
+Manual semantic source comparison completed; no application tests/drills run.

@@ -1,0 +1,140 @@
+Task 2.1 — 2026-09-25
+Command: python3 scripts/check_toolchain.py
+Result: exit 0 (Maven/Docker server results are deferred prerequisites).
+
+java: /opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home/bin/java
+javac: /opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home/bin/javac
+mvn: NOT FOUND
+node: /Users/user/.nvm/versions/node/v24.16.0/bin/node
+npm: /Users/user/.nvm/versions/node/v24.16.0/bin/npm
+pnpm: /Users/user/.nvm/versions/node/v24.16.0/bin/pnpm
+docker: /usr/local/bin/docker
+python3: /opt/homebrew/bin/python3
+$ java -version
+openjdk version "21.0.12.1" 2026-08-18
+OpenJDK Runtime Environment Homebrew (build 21.0.12.1)
+OpenJDK 64-Bit Server VM Homebrew (build 21.0.12.1, mixed mode, sharing)
+exit=0
+$ javac -version
+javac 21.0.12.1
+exit=0
+$ node --version
+v24.16.0
+exit=0
+$ npm --version
+11.13.0
+exit=0
+$ python3 --version
+Python 3.14.5
+exit=0
+$ mvn -version
+UNAVAILABLE: [Errno 2] No such file or directory: 'mvn'
+$ pnpm --version
+10.0.0
+exit=0
+$ docker --version
+Docker version 29.4.3, build 055a478
+exit=0
+$ docker compose version
+Docker Compose version v5.1.4
+exit=0
+$ docker info --format {{.ServerVersion}}
+
+failed to connect to the docker API at unix:///Users/user/.docker/run/docker.sock; check if the path is correct and if the daemon is running: dial unix /Users/user/.docker/run/docker.sock: connect: no such file or directory
+exit=1
+$ javac /var/folders/mt/c6_72rp14zn079l1ns1mnsmm0000gn/T/relay-java-zo3zn9nd/HelloRelay.java
+exit=0
+$ java -cp /var/folders/mt/c6_72rp14zn079l1ns1mnsmm0000gn/T/relay-java-zo3zn9nd HelloRelay
+Relay Java OK
+exit=0
+$ javac /var/folders/mt/c6_72rp14zn079l1ns1mnsmm0000gn/T/relay-java-zo3zn9nd/HelloRelay.java
+/var/folders/mt/c6_72rp14zn079l1ns1mnsmm0000gn/T/relay-java-zo3zn9nd/HelloRelay.java:1: error: ';' expected
+public class HelloRelay { invalid java }
+                                      ^
+1 error
+exit=1
+PASS: valid Java compiles/runs; invalid source rejected
+PASS: core toolchain checks; review optional/unavailable results above
+
+Install: brew install openjdk@21 — exit 0; OpenJDK 21.0.12.1 and dependencies installed. Homebrew upgraded libunistring/gettext dependency versions.
+Shell repair: python3 /private/tmp/relay-repair-java-env.py — exit 0; backup ~/.zshenv.relay-2.1.bak.
+Initial failures: no JDK registered; ~/.zshenv requested Java 11; optional yarn --version failed Corepack registry DNS (not required, npm/pnpm available). Docker server socket absent.
+
+Shell check: python3 /private/tmp/relay-verify-shell.py — exit 0.
+PASS: -c, -lc, -ic each execute java/javac 21.0.12.1 without missing-runtime stderr.
+PASS: absent and invalid JAVA_HOME select Homebrew 21; valid override retained and placed first on PATH.
+Reproduce by saving the following Python code to a temporary file and running python3 on it:
+
+import os
+from pathlib import Path
+import subprocess
+import tempfile
+
+jdk = '/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home'
+for mode in ('-c', '-lc', '-ic'):
+    env = dict(os.environ)
+    env.pop('JAVA_HOME', None)
+    args = ['/bin/zsh', mode, 'java -version && javac -version']
+    result = subprocess.run(args, env=env, text=True, capture_output=True, timeout=30)
+    print('$', ' '.join(args)); print(result.stdout + result.stderr); print('exit=', result.returncode)
+    assert result.returncode == 0 and 'Unable to locate' not in result.stderr
+print('PASS: 3 fresh zsh modes')
+with tempfile.TemporaryDirectory(prefix='relay-jdk-override-') as temp:
+    bindir = Path(temp) / 'bin'; bindir.mkdir()
+    for name in ('java', 'javac'):
+        p = bindir / name; p.write_text('#!/bin/sh\nexit 0\n'); p.chmod(0o755)
+    for value, expected in ((None, jdk), ('/nonexistent/relay-jdk', jdk), (temp, temp)):
+        env = dict(os.environ)
+        if value is None:
+            env.pop('JAVA_HOME', None)
+        else:
+            env['JAVA_HOME'] = value
+        args = ['/bin/zsh', '-c', 'print -r -- "$JAVA_HOME"; command -v java; command -v javac']
+        result = subprocess.run(args, env=env, text=True, capture_output=True, timeout=30)
+        assert result.returncode == 0 and result.stdout.splitlines() == [expected, expected+'/bin/java', expected+'/bin/javac'], result
+        assert not result.stderr, result.stderr
+        print('PASS: JAVA_HOME', repr(value), '=>', expected)
+
+Applied shell snippet (replaced only the Java 11 lookup):
+# Keep an explicitly configured JDK; otherwise use the installed development JDK.
+if [[ -z "$JAVA_HOME" || ! -x "$JAVA_HOME/bin/java" || ! -x "$JAVA_HOME/bin/javac" ]]; then
+  if [[ -x /opt/homebrew/opt/openjdk@21/bin/javac ]]; then
+    export JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home
+  else
+    export JAVA_HOME="$(/usr/libexec/java_home 2>/dev/null)"
+  fi
+fi
+if [[ -n "$JAVA_HOME" && -x "$JAVA_HOME/bin/java" ]]; then
+  case ":$PATH:" in
+    *":$JAVA_HOME/bin:"*) ;;
+    *) export PATH="$JAVA_HOME/bin:$PATH" ;;
+  esac
+fi
+
+$ python3 scripts/check_capstone_review.py
+PASS: 16 pinned source files match manifest
+PASS: commit recorded
+PASS: local review links resolve
+PASS: every pack source referenced
+PASS: catalog counts match review
+PASS: fixture counts match review
+PASS: all seed and payload IDs covered
+PASS: all node types covered
+PASS: injection graph ambiguity documented
+PASS: supplied mock emits non-JSON prose
+PASS: empty-ledger false assurance reproduced offline
+PASS: checklist and next item agree
+PASS: API implementation status remains honest
+PASS: local-only publication rule preserved
+PASS: scope corrections and cancellation tracked
+PASS: runtime verification explicitly outstanding
+16 checks passed.
+exit=0
+
+$ python3 docs/source-review/pack/scripts/validate_pack.py
+Pack OK:
+  7 node types, 3 trigger types
+  4 seed workflows, 8 sample payloads
+  15 NL eval cases (3 traps)
+exit=0
+PASS: setup links resolve, no stale pending status, completed 2.1/next 2.2 agree, API remains unimplemented.

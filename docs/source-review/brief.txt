@@ -1,0 +1,110 @@
+
+=== PAGE 1 ===
+AI-first So f tw are Engineering Program - C ase Study
+R elay: AI W orkflo w Orchestra t or
+A uthor : Air tribe
+A i r t r i b e
+BA CK GROUND & OBJECTIVE
+Operations t eams run on w orkflo ws. When an or der w ebhook arriv es, a syst em 
+ma y need t o check t he pa yload, classify t he r equest, notify t he right t eam, wait 
+f or appr o v al, and t hen tak e an action.
+In AI-first pr oduct s, w orkflo ws become mor e comple x because some st eps no w 
+in v olv e machine judgment. An AI node ma y r ead a w ebhook pa yload, classify t he 
+r equest, and decide which branch t he w orkflo w should tak e. But t his only w orks 
+if t he or chestration engine is r eliable underneat h.
+This pr oject in v olv es designing and implementing R ela y , an AI w orkflo w 
+or chestration platf orm t hat can define w orkflo ws as connect ed typed nodes, 
+trigger runs fr om w ebhooks or APIs, e x ecut e st eps durably in t he back gr ound, 
+pause f or human appr o v als, v alidat e AI output s, r eco v er fr om crashes, and 
+maintain complet e run traces.
+KEY FEA TURES
+1 . W orkflo w Definitions: 
+Allo w users t o cr eat e, updat e, list, and publish w orkflo ws made of typed nodes. 
+W orkflo ws should f ollo w a draft → publish lif ecy cle. Published w orkflo ws should be 
+fr oz en and runnable. 
+2. W ebhook and Manual T riggers: 
+Suppor t w ebhook -based triggers pr ot ect ed b y a w orkflo w secr et, along wit h manual 
+trigger APIs f or t esting and demos. The trigger pa yload becomes t he input f or t he 
+run. 
+01
+
+=== PAGE 2 ===
+A i r t r i b e
+3 . Durable W orkflo w Ex ecution: 
+Ex ecut e runs asynchr onously t hr ough a queue and w ork er . Ev er y st ep should be 
+persist ed so t hat if t he w ork er crashes, t he run can r esume fr om t he last 
+complet ed st ep inst ead of star ting again.  
+4 . Det erministic and AI Nodes: 
+Implement det erministic node types such as http_ r equest, condition, dela y , and 
+notify . Also implement an ai node wher e t he model output is v alidat ed against a 
+JSON schema bef or e do wnstr eam st eps can use it. 
+5 . Appr o v al Gat es and Sensitiv e Actions: 
+Implement appr o v al nodes wher e a run pauses until a human appr o v es or r eject s 
+it. Sensitiv e nodes, such as or der actions, must not e x ecut e unless an appr o v al 
+r ecor d e xist s. This should be enf or ced b y t he engine, not b y t he AI pr ompt. 
+6 . T races, Guar drails and St ep Cap: 
+St or e a complet e trace f or e v er y run, including r esolv ed input s, output s, 
+att empt s, timing, and t ok en usage f or AI st eps. Handle pr ompt -injection 
+pa yloads saf ely , pr e v ent duplicat e side eff ect s wit h idempot ency k e ys, and 
+enf or ce a max -st ep cap so runawa y w orkflo ws cannot loop f or e v er .
+TECHNIC AL REQUIREMENTSTECHNIC AL REQUIREMENTS
+Expose t he cor e functionality as RESTful APIs.
+Use a r eliable persist ent st or e f or w orkflo ws, runs, run definition 
+snapshot s, st eps, and appr o v als.
+Ex ecut e w orkflo ws asynchr onously using a durable queue and w ork er 
+loop.
+ Side-eff ect calls t o t he mock w orld must use idempot ency k e ys so 
+crash r eco v er y does not duplicat e actions.
+Ev er y e xt ernal call, including model pr o viders and mock -w orld calls, 
+should ha v e a timeout.
+K eep t he AI pr o vider behind an adapt er so it can be mock ed in engine 
+t est s.
+02
+
+=== PAGE 3 ===
+A i r t r i b e
+Enf or ce appr o v al gat es and t he st ep cap in t he engine, independent of 
+model output.
+Pr o vide aut omat ed t est s f or publish v alidation, t emplat e r esolution, 
+schema enf or cement, idempot ency , and guar drails.
+A SSESSMENT CRITERIA
+F unctionality: 
+Does t he platf orm load t he pr o vided data, manage draft and published 
+w orkflo ws, cr eat e per -run definition snapshot s, trigger runs fr om 
+w ebhooks and manual APIs, e x ecut e det erministic and AI nodes, pause f or 
+appr o v als, enf or ce t he st ep cap, and sho w e v er yt hing t hr ough a simple 
+console?
+Durability and AI Corr ectness: 
+Does a killed w ork er r esume wit hout duplicating side eff ect s? Do injection 
+pa yloads f ail t o b ypass appr o v al gat es? Does schema enf or cement cat ch 
+malf ormed AI output s? Does t he runawa y w orkflo w st op at t he st ep cap?
+ Code Quality: 
+ Is t he code clean, or ganiz ed, maintainable, and easy t o understand?
+Design and Structur e: 
+Is t he or chestration engine w ell-designed? Does it sho w a good 
+understanding of queues, w ork ers, stat e machines, idempot ency , r etries, 
+durable e x ecution, AI nodes, and appr o v al-gat ed syst ems?
+ Documentation and Demo: 
+Is t he README clear? Ar e setup st eps, API documentation, ar chit ectur e, 
+run stat e machine, r eco v er y design, and kno wn limitations document ed? 
+Does t he demo clearly sho w t he full R ela y w orkflo w?
+03
+
+=== PAGE 4 ===
+A i r t r i b e
+DELIVERABLES
+The final, functional pr oduct: or chestration engine and simple console.
+README file co v ering setup instructions, API documentation, ar chit ectur e, 
+design decisions, run stat e machine, and e xact ly-once r eco v er y appr oach.
+Public link of t he G it Hub r eposit or y .
+ Seeded demo w orkflo ws and instructions t o r epr oduce t he demo using t he 
+mock w orld.
+V erification r epor t wit h smok e t est output and duplication check r esult aft er a 
+liv e kill-and-r esume demo.
+ Explainer video demonstrating t he pr oject, including w orkflo w trigger , AI node 
+branching, appr o v al gat e, w ork er crash and r esume, pr ompt -injection handling, 
+and st ep-cap pr ot ection.
+RESOURCES 
+G it Hub R eposit or y: 
+https://git hub.com/air tribe-pr oject s/r ela y-capst one
+04

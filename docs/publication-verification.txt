@@ -1,0 +1,36 @@
+Task3.8 — publication and snapshots — 2026-09-27
+Backend: ./gradlew --gradle-user-home .gradle/user-home --no-daemon --offline test bootJar
+Final offline rerun exit0, BUILD SUCCESSFUL in10s;177 tests passed, zero failures/errors/skips. Executable jar built.
+Root: python3 scripts/check_persistence.py --publication
+Initial comprehensive integration passed in11s and cleaned project relay-jpa-47491b3953.
+Verified publication, repeated no-op, invalid draft unchanged, deterministic stale-validation409,
+redaction, mandatory transaction, frozen run JSON/input/policy, rollback, original four seeds,
+and API restart. Final expanded run exit0, publicationTest BUILD SUCCESSFUL in12s;1 comprehensive integration
+case passed, zero failures/errors/skips. Owned project relay-jpa-37634a4068 removed.
+Additional verified cases: allowed-origin publish200/CORS headers; GET publish405; snapshot
+selection holds row lock until caller commit so competing edit waits; old run snapshot remains
+whole after edit; missing workflow and manual/webhook incompatibility reject; JSON null webhook
+input preserved while manual null rejects; four simultaneous no-op publications all200 and
+revision unchanged. No queue jobs created. Snapshots persist through fresh API context restart.
+Root: python3 scripts/check_persistence.py --workflows
+Exit0, workflowApiTest BUILD SUCCESSFUL in10s;1 comprehensive existing CRUD regression passed,
+zero failures/errors/skips. Updated the former unimplemented-publish404 expectation to
+invalid-draft400 and made its test publication fixture a complete definition for redaction.
+Owned disposable project relay-jpa-b36f3a67ba removed.
+All13 consistency checks passed. Implementation-status assertions in four checkers updated for the new publication route.
+No user service or ordinary database changes; no remote publication.
+
+Exact consistency commands (all exit0):
+python3 scripts/check_architecture.py
+python3 scripts/check_backend_scaffold.py
+python3 scripts/check_capstone_review.py
+python3 scripts/check_console.py
+python3 scripts/check_data_model.py
+python3 scripts/check_frontend_scaffold.py
+python3 scripts/check_mvp.py
+python3 scripts/check_project_layout.py
+python3 scripts/check_recovery.py
+python3 scripts/check_requirements.py
+python3 scripts/check_state_transitions.py
+python3 scripts/check_versions.py
+python3 scripts/check_workflow_semantics.py

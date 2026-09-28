@@ -1,0 +1,9 @@
+{
+  "checked": "2026-09-25",
+  "command": "docker buildx imagetools inspect mysql:8.4.11",
+  "image": "mysql:8.4.11",
+  "indexDigest": "sha256:0744ee5ef89ce6ccfa13de3e579fe6b9e27f93dd70da9c06d2c908b1b193fb8d",
+  "amd64Digest": "sha256:f015b98a954d6bb92c370d93f354b85f4bcea15642d9fb2975f841a00d400b65",
+  "arm64Digest": "sha256:64a9d35fe6fed01159499be26c3279ac5ee16006c2ebb1f480d634bd5c61a053",
+  "sourceRevision": "01f90d87012e46cd174073bba02d64e9fc693ed3"
+}

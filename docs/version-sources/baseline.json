@@ -1,0 +1,35 @@
+{
+  "selected_on": "2026-09-25",
+  "pins": {
+    "Java JDK": "21.0.12.1",
+    "Spring Boot": "4.1.1",
+    "Gradle Wrapper": "9.8.0",
+    "Node.js": "24.21.0",
+    "npm": "11.19.0",
+    "MySQL image": "8.4.11",
+    "Python": "3.14.5",
+    "Docker CLI baseline": "29.4.3",
+    "Docker Compose baseline": "5.1.4",
+    "JSON Schema validator": "3.0.6",
+    "Vite": "8.3.1",
+    "Vite React plugin": "6.1.1",
+    "React": "19.3.0",
+    "React DOM": "19.3.0",
+    "TypeScript": "7.0.2",
+    "Node types": "24.13.6",
+    "React types": "19.3.0",
+    "React DOM types": "19.3.0",
+    "React Router": "8.4.0"
+  },
+  "boot_managed": {
+    "flyway.version": "12.4.0",
+    "hibernate.version": "7.4.5.Final",
+    "jackson-bom.version": "3.1.5",
+    "junit-jupiter.version": "6.0.3",
+    "mysql.version": "9.7.0",
+    "spring-data-bom.version": "2026.0.1",
+    "spring-framework.version": "7.0.9",
+    "spring-security.version": "7.1.1",
+    "testcontainers.version": "2.0.5"
+  }
+}

@@ -1,0 +1,31 @@
+Task3.1 domain schema — 2026-09-25
+Initial root ./gradlew command failed (wrapper is in backend); no tests ran for that invocation.
+Backend: ./gradlew --gradle-user-home .gradle/user-home --no-daemon --offline test bootJar — exit0, BUILD SUCCESSFUL in7s; resource packaging and tests executed.
+
+JUnit XML:78 tests, zero failures/errors/skips. Jar entry BOOT-INF/classes/db/migration/V1__relay_schema.sql matches source byte-for-byte.
+Command(root): python3 scripts/check_component_startup.py --domain — exit0.
+PASS: worker rejects fresh empty schema before API migration.
+PASS: six domain tables plus Flyway history, InnoDB/utf8mb4_0900_bin, all10 named lookup/FK indexes and6 restrictive FKs.
+PASS: valid loop visits, nullable idempotency keys, distinct case-sensitive IDs,128-character ID, JSONnull vs SQLNULL, microsecond timestamp preservation and explicit transaction rollback.
+PASS:81 negative SQL cases rejected with expected MySQL error codes: duplicates1062, too-long ID1406, malformed JSON3140, requiredNULL1048, CHECK3819, missing/same-run FK1452, referenced delete1451.
+Checks cover publication/state/pair, trigger enum, counters/booleans, wait state, repair request, terminal timing, attempts, human/closure evidence and queue lease/generation constraints.
+PASS: packaged API Flyway migration executes once, readiness/livenessUP; worker starts without Tomcat/HTTP/schema mutation; DB outage readiness503/liveness200 recovers200; API restart retains3 workflow fixtures and one successful migration; wrong password rejected.
+PASS: all owned processes and disposable Compose volume/network cleaned up (relay-integration-92588ff212). Ordinary relay DB and existing services untouched.
+
+Consistency: initial data-model checker misclassified migration label V1 as a verification-case ID. Updated matching to V followed by at least two digits (actual V01–V23 contract); all existing8 data-model checks passed afterward.
+All13 commands below exit0:
+python3 scripts/check_architecture.py
+python3 scripts/check_backend_scaffold.py
+python3 scripts/check_capstone_review.py
+python3 scripts/check_console.py
+python3 scripts/check_data_model.py
+python3 scripts/check_frontend_scaffold.py
+python3 scripts/check_mvp.py
+python3 scripts/check_project_layout.py
+python3 scripts/check_recovery.py
+python3 scripts/check_requirements.py
+python3 scripts/check_state_transitions.py
+python3 scripts/check_versions.py
+python3 scripts/check_workflow_semantics.py
+
+No production migration applied to ordinary user DB, no backend routes/ORM entities/seeds added. Services still must enforce immutability, node membership, authorization, row transitions, cap accounting and transaction fences. JPA repository concurrency/query plans remain3.10. No Git publication.

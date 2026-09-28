@@ -1,0 +1,41 @@
+# Local credentials/configuration; keep reviewed examples at any depth.
+.env
+.env.*
+!.env.example
+
+# Java / Gradle generated files (do not ignore wrapper JARs or lockfiles).
+.gradle/
+.kotlin/
+build/
+out/
+*.class
+
+# Frontend dependencies and generated output.
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+.vite/
+
+# Python caches and virtual environments.
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Machine-specific editor/OS state.
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Local scratch data, runtime logs and future database dumps.
+/tmp/
+/local-data/
+*.log
+*.hprof
+
+# Browser verification output.
+/frontend/test-results/
+/frontend/playwright-report/

@@ -1,0 +1,28 @@
+Task3.5 — 2026-09-27
+Backend command: ./gradlew --gradle-user-home .gradle/user-home --no-daemon --offline test bootJar
+Initial sandbox run could not open Gradle's lock socket; rerun with permission.
+Initial compilation found Jackson3 JsonFactory import mismatch; corrected to core.json.JsonFactory.
+Final rerun exit0: BUILD SUCCESSFUL in10s,131 tests, zero failures/errors/skips; bootJar built.
+
+Tests cover byte-identical catalog provenance and all seven metadata entries, all four original
+seed definitions, schedule exclusion, defensive copies, exact decimals, null versus absent edges,
+self-loop/dangling entry/unknown type/incomplete params accepted as drafts; malformed/duplicate/
+trailing JSON, invalid structure/limits/IDs/trigger, duplicate node IDs, safe errors,
+Unicode ID/name, size/depth and multibyte secret boundaries.
+No HTTP routes, database writes, external calls, frontend changes or runtime handlers added.
+CRUD3.6 and publish validation3.7 remain outstanding. D01 unchanged. No publication.
+
+All13 consistency commands passed (exit0):
+python3 scripts/check_architecture.py
+python3 scripts/check_backend_scaffold.py
+python3 scripts/check_capstone_review.py
+python3 scripts/check_console.py
+python3 scripts/check_data_model.py
+python3 scripts/check_frontend_scaffold.py
+python3 scripts/check_mvp.py
+python3 scripts/check_project_layout.py
+python3 scripts/check_recovery.py
+python3 scripts/check_requirements.py
+python3 scripts/check_state_transitions.py
+python3 scripts/check_versions.py
+python3 scripts/check_workflow_semantics.py

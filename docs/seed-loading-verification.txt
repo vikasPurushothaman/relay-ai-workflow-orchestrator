@@ -1,0 +1,34 @@
+Task3.9 — repeatable seeds — 2026-09-27
+Backend: ./gradlew --gradle-user-home .gradle/user-home --no-daemon --offline test bootJar
+Initial exit0, BUILD SUCCESSFUL in10s;188 tests passed, zero failures/errors/skips; jar built.
+Final offline rerun exit0, BUILD SUCCESSFUL in10s;188 tests passed, zero failures/errors/skips, including worker/scaffold no-seed assertions.
+Root: python3 scripts/check_persistence.py --seeds
+Initial integration exit0, seedTest BUILD SUCCESSFUL in15s; startup disabled/default,
+repeat/restart unchanged, preservation of edited draft, missing subset, atomic rollback,
+concurrent loaders, startup failure/recovery and HTTP list redaction passed.
+Owned disposable project relay-jpa-96ba8c1c89 removed. Final expanded seedTest exit0, BUILD SUCCESSFUL in12s;1 comprehensive real MySQL integration
+passed, zero failures/errors/skips. Unrelated workflow preservation verified as well.
+Owned project relay-jpa-73276d1529 removed.
+Root: python3 scripts/check_persistence.py --publication
+Exit0; publicationTest BUILD SUCCESSFUL in11s;1 comprehensive real HTTP/MySQL publication,
+revision-fencing and immutable snapshot regression passed. Auto seeds explicitly disabled
+for its fixture DB. Owned project relay-jpa-232100e11a removed.
+All13 consistency checks passed after updating the architecture checker configuration-row
+count from11 to12 for the newly documented RELAY_LOAD_SEEDS setting. Initial check stopped
+at this stale-count assertion; final pass all succeeded.
+User services and ordinary DB unchanged. No new route, run execution or remote publication.
+
+Exact consistency commands (all exit0):
+python3 scripts/check_architecture.py
+python3 scripts/check_backend_scaffold.py
+python3 scripts/check_capstone_review.py
+python3 scripts/check_console.py
+python3 scripts/check_data_model.py
+python3 scripts/check_frontend_scaffold.py
+python3 scripts/check_mvp.py
+python3 scripts/check_project_layout.py
+python3 scripts/check_recovery.py
+python3 scripts/check_requirements.py
+python3 scripts/check_state_transitions.py
+python3 scripts/check_versions.py
+python3 scripts/check_workflow_semantics.py

@@ -1,0 +1,26 @@
+Task3.2 — persistence/API foundation, 2026-09-25
+Backend command: ./gradlew --gradle-user-home .gradle/user-home --no-daemon --offline test bootJar
+Initial root invocation failed because wrapper is in backend; no tests ran there.
+Final backend build: exit0, BUILD SUCCESSFUL in10s; 87 tests (78 existing,8 API foundation,1 mapping metadata), zero failures/errors/skips; jar built.
+
+python3 scripts/check_persistence.py: both runs exit0. First actual JPA round-trip/optimistic tests passed. Review then found reversed Column.nullable metadata (database constraints still enforced); corrected and added per-column migration metadata regression.
+Final MySQL run: BUILD SUCCESSFUL in7s,1 integration test passed, no skips. All six repositories persisted/reloaded; JSONnull versus SQLNULL, Unicode and microsecond Instant round-trip verified. JVM America/Los_Angeles plus raw SQL timestamp confirms UTC storage. Workflow/run competing revisions rejected stale writes; missing FK rejected and rolled back; explicit rollback preserved state. Owned project relay-jpa-c1f459d3ee removed.
+
+Existing component checker adapted to classpathV1+temporaryV2 because JPA requires domain tables. Final packaged regression pending below. Resume sandbox attempt failed at localhost bind; approved repeat initiated.
+
+Final python3 scripts/check_component_startup.py: exit0. API/JPA/Flyway start, no-web worker, database outage readiness503/liveness200/recovery200, repeated migration, absent/pending/checksum/future schema and wrong credentials checks all passed. Disposable project relay-integration-03be9d40a8 removed; user DB/services untouched.
+All13 consistency commands exit0:
+python3 scripts/check_architecture.py
+python3 scripts/check_backend_scaffold.py
+python3 scripts/check_capstone_review.py
+python3 scripts/check_console.py
+python3 scripts/check_data_model.py
+python3 scripts/check_frontend_scaffold.py
+python3 scripts/check_mvp.py
+python3 scripts/check_project_layout.py
+python3 scripts/check_recovery.py
+python3 scripts/check_requirements.py
+python3 scripts/check_state_transitions.py
+python3 scripts/check_versions.py
+python3 scripts/check_workflow_semantics.py
+No domain routes, lifecycle operations, provider calls or user DB changes; no publication. Full repository/query-plan/worker concurrency tests remain3.10/Phase4. MVC probes are test-only; actual security/Actuator behavior unchanged.

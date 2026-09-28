@@ -1,0 +1,40 @@
+Task3.6 — workflow CRUD verification — 2026-09-27
+Backend: ./gradlew --gradle-user-home .gradle/user-home --no-daemon --offline test bootJar
+Exit0, BUILD SUCCESSFUL in12s;131 tests passed, zero failures/errors/skips, jar built.
+Root: python3 scripts/check_persistence.py --workflows
+Initial run reached the published-fixture check, which used a timestamp earlier than creation
+and correctly failed ck_workflow_time. Fixed only the test timestamp; owned DB cleaned up.
+Final rerun exit0: workflowApiTest BUILD SUCCESSFUL in11s,1 comprehensive real HTTP/MySQL
+integration test passed, zero failures/errors/skips. Owned project relay-jpa-ec4ffc75b5 removed.
+Verified empty list;401 for missing/wrong credentials on reads/writes without mutation;
+POST201 and duplicate409; list/detail200 and webhook secret redaction; stored secret retained;
+PUT200 with created_at preserved; missing404; immutable_id400; malformed/duplicate/empty JSON400;
+non-JSON415; malformed UTF-8 400; Content-Length and chunked oversized requests413;
+exact1MiB valid replacement200; invalid edits leave previous definition intact.
+Publication fixture edit resets draft and retains previous publication/time.
+Six parallel creates produce exactly one201/five409; four parallel updates all200 and final
+metadata matches one complete stored definition. DELETE405; publish remains404.
+API context restart preserves both rows. No regular user DB changed.
+Root: python3 scripts/check_component_startup.py --browser
+Exit0: real Chromium allowed-origin401/challenge and authenticated list200 after preflight,
+unlisted-origin blocked. Packaged API/worker startup, migration ownership/idempotency,
+empty/pending/checksum/future schema rejection, wrong credentials, DB readiness outage/recovery
+all passed. Owned project relay-integration-0078270c4c and processes cleaned up.
+No user database or regular service modifications. No remote publication.
+
+All13 consistency commands passed (exit0):
+python3 scripts/check_architecture.py
+python3 scripts/check_backend_scaffold.py
+python3 scripts/check_capstone_review.py
+python3 scripts/check_console.py
+python3 scripts/check_data_model.py
+python3 scripts/check_frontend_scaffold.py
+python3 scripts/check_mvp.py
+python3 scripts/check_project_layout.py
+python3 scripts/check_recovery.py
+python3 scripts/check_requirements.py
+python3 scripts/check_state_transitions.py
+python3 scripts/check_versions.py
+python3 scripts/check_workflow_semantics.py
+
+Four consistency checkers updated their former no-workflow-APIs assertion to reflect implemented CRUD; remaining publication/run/approval/webhook status checks retained.

@@ -1,0 +1,29 @@
+Task 2.8 — local mocks verification, 2026-09-25
+Initial sandbox run: fixture/hash/CLI checks passed; mock startup could not bind. Retrying with approved localhost access.
+
+Command (root): python3 scripts/check_local_mocks.py
+Approved socket-access run: exit 0. Final rerun after bounded startup wait/error diagnostics: exit 0.
+Pack OK: 7 node types, 3 trigger types, 4 workflows, 8 payloads, 15 optional NL cases (3 traps).
+PASS: all16 source hashes and negative drift test; fixture validator; supplied smoke/duplication --help; invalid role/port CLI failures.
+PASS: world five side-effect routes, sequential replay identity/header, refund zero/negative/excess/string rejection, exact-total success, repeated-refund409, missing fields400/unknown resources404/malformed JSON400, ledger since filtering/error, injected503/health unaffected/reset restoration.
+PASS: supplied duplicate checker exits0 for one execution+replay and1 after a real duplicate payload execution; this is mock verification, not engine exactly-once evidence.
+PASS: occupied port rejected; a fresh world process has empty ledger.
+PASS: provider health/name, missing bearer401, unknown model404, empty messages/malformed JSON400; completion usage/non-JSON prose; injected503/429 with Retry-After5, recovery200 and unknown404.
+PASS: owned ephemeral processes stopped; no user service/ledger touched. No permanent standard-port mocks left running.
+
+Consistency commands (root): all exit0.
+python3 scripts/check_architecture.py
+python3 scripts/check_backend_scaffold.py
+python3 scripts/check_capstone_review.py
+python3 scripts/check_console.py
+python3 scripts/check_data_model.py
+python3 scripts/check_frontend_scaffold.py
+python3 scripts/check_mvp.py
+python3 scripts/check_project_layout.py
+python3 scripts/check_recovery.py
+python3 scripts/check_requirements.py
+python3 scripts/check_state_transitions.py
+python3 scripts/check_versions.py
+python3 scripts/check_workflow_semantics.py
+
+No backend/frontend behavior changed; Java/npm suites not rerun. No full Relay smoke/worker crash drill, streaming test, real provider call or schema-valid AI result claimed. No snapshot changes, license invention or publication.

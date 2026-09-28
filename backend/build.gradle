@@ -1,0 +1,127 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '4.1.1'
+}
+
+group = 'com.relay'
+version = '0.1.0'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation platform('org.springframework.boot:spring-boot-dependencies:4.1.1')
+    testImplementation platform('org.springframework.boot:spring-boot-dependencies:4.1.1')
+    implementation 'com.networknt:json-schema-validator:3.0.6'
+    implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-flyway'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    runtimeOnly 'com.mysql:mysql-connector-j'
+    runtimeOnly 'org.flywaydb:flyway-mysql'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.testcontainers:testcontainers-mysql'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+dependencyLocking {
+    lockAllConfigurations()
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 21
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+tasks.named('jar') {
+    enabled = false
+}
+
+// Explicit integration task: requires a disposable MySQL supplied by the local runner.
+tasks.named('test') {
+    exclude '**/*MySqlTest.class'
+    exclude '**/*LiveAiTest.class'
+}
+// Explicit opt-in only: makes a real, potentially billable provider request.
+tasks.register('liveAiTest', Test) {
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform()
+    include '**/*LiveAiTest.class'
+    testLogging {
+        exceptionFormat = 'full'
+        showStackTraces = false
+    }
+    outputs.upToDateWhen { false }
+}
+tasks.register('mysqlTest', Test) {
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform()
+    include '**/PersistenceMySqlTest.class'
+    systemProperty 'user.timezone', 'America/Los_Angeles'
+    outputs.upToDateWhen { false }
+}
+
+// Real HTTP workflow operations against the same disposable MySQL runner.
+tasks.register('workflowApiTest', Test) {
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform()
+    include '**/WorkflowApiMySqlTest.class'
+    outputs.upToDateWhen { false }
+}
+
+tasks.register('publicationTest', Test) {
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform()
+    include '**/PublicationMySqlTest.class'
+    outputs.upToDateWhen { false }
+}
+
+tasks.register('seedTest', Test) {
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform()
+    include '**/SeedMySqlTest.class'
+    outputs.upToDateWhen { false }
+}
+
+// Every class owns a fresh MySQL container. Missing Docker is a failure, never a skip.
+tasks.register('testcontainersTest', Test) {
+    dependsOn tasks.named('bootJar')
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform()
+    include '**/*MySqlTest.class'
+    systemProperty 'relay.testcontainers', 'true'
+    systemProperty 'user.timezone', 'America/Los_Angeles'
+    systemProperty 'junit.jupiter.execution.parallel.enabled', 'false'
+    // Do not inherit application configuration or credentials from the caller.
+    environment = environment.findAll { key, value ->
+        !['RELAY_', 'SPRING_', 'SERVER_', 'MANAGEMENT_'].any { key.startsWith(it) }
+    }
+    outputs.upToDateWhen { false }
+}
+
+// Same transport limits as the packaged entry point, before any test HTTP client initializes.
+tasks.withType(Test).configureEach {
+    systemProperty 'jdk.httpclient.disableRetryConnect', 'true'
+    systemProperty 'jdk.httpclient.enableAllMethodRetry', 'false'
+    systemProperty 'jdk.httpclient.redirects.retrylimit', '1'
+}

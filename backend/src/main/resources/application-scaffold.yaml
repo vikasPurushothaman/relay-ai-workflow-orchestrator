@@ -1,0 +1,8 @@
+# Explicit opt-in foundation only. The db health indicator stays OUT_OF_SERVICE.
+# Normal datasource/JPA/Flyway wiring belongs to task 2.5; never disable it globally.
+spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration
+      - org.springframework.boot.hibernate.autoconfigure.HibernateJpaAutoConfiguration
+      - org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration

@@ -1,0 +1,66 @@
+Task3.10 — Testcontainers Phase3 verification — 2026-09-27
+
+Environment: macOS arm64, OpenJDK21.0.12.1, Gradle9.8.0, Docker Desktop,
+Spring Boot4.1.1, BOM-managed Testcontainers2.0.5, MySQL8.4.11 image digest
+sha256:0744ee5ef89ce6ccfa13de3e579fe6b9e27f93dd70da9c06d2c908b1b193fb8d.
+No production application code or routes changed. No user DB or services used.
+
+Commands run from backend unless stated otherwise:
+1. ./gradlew --gradle-user-home .gradle/user-home --no-daemon --write-locks test bootJar
+   PASS,188 unit tests, zero failures/errors/skips; dependency locks written.
+2. ./gradlew --gradle-user-home .gradle/user-home --no-daemon --offline testcontainersTest
+   Initial FAIL: five initialization errors before Docker startup because Testcontainers
+   rejects the combined mysql:tag@digest compatibility name. Changed to mysql@digest,
+   preserving exactly the pinned image. An intermediate invocation from repository root
+   failed because ./gradlew lives in backend; no tests ran in that invocation.
+3. Same command rerun from backend after digest syntax fix:4 comprehensive cases
+   passed; MigrationMySqlTest failed on an incorrect test expectation `attempts` instead
+   of the existing `step_attempts` table. Corrected test name; application unchanged.
+4. ./gradlew --gradle-user-home .gradle/user-home --no-daemon --offline testcontainersTest --tests '*MigrationMySqlTest'
+   PASS:1 test, zero failures/errors/skips,19s. Fresh-worker rejection, exactV1/seven
+   tables, API/worker history preservation and both checksum-rejection paths passed.
+   Together runs3/4 passed all5 comprehensive cases (four in run3, migration in run4).
+   The filtered rerun's XML/report contains only the migration case; run3 results were
+   inspected before rerunning. No claim that the first full run was all-green.
+
+Document checks, repository root:
+python3 scripts/check_architecture.py
+python3 scripts/check_backend_scaffold.py
+python3 scripts/check_capstone_review.py
+python3 scripts/check_console.py
+python3 scripts/check_data_model.py
+python3 scripts/check_frontend_scaffold.py
+python3 scripts/check_mvp.py
+python3 scripts/check_project_layout.py
+python3 scripts/check_recovery.py
+python3 scripts/check_requirements.py
+python3 scripts/check_state_transitions.py
+python3 scripts/check_versions.py
+python3 scripts/check_workflow_semantics.py
+Initial pass:10 passed; backend_scaffold/project_layout/versions failed because this
+referenced evidence file had not yet been written. After writing this file, all13
+commands passed (exit0). Final roadmap consistency recheck also passed.
+
+Coverage is implemented in five comprehensive tests using one owned container/class:
+PublicationMySqlTest: validation errors leave old publication unchanged; auth/missing/body
+errors; revision-fenced publish/edit races; snapshot/edit locking; immutable run definition,
+policy and input after mutation/republish/restart; transaction/trigger input boundaries.
+WorkflowApiMySqlTest: HTTP CRUD/auth/media/size/invalid/duplicate cases and durability.
+PersistenceMySqlTest: all six JPA repositories, FK rejection, SQL NULL versus JSON null,
+UTC microseconds in non-UTC JVM, Unicode, optimistic conflicts and transaction rollback.
+SeedMySqlTest: default/disabled/repeated startup, preserved edits, missing subset,
+concurrent insert retries, rollback/recovery, HTTP seed GET/PUT/publish and restart.
+MigrationMySqlTest: worker rejects fresh DB without writing tables, API installs exactly
+V1/seven tables, API/worker restarts preserve history, both reject tampered checksum
+without repairing it.
+
+Testcontainers lifecycle uses explicit close plus Ryuk; Docker-unavailable fails rather
+than skips. Test Gradle task removes inherited application environment. Normal unit
+suite remains Docker-independent and prior Compose runners retain their interfaces.
+Engine queries/claim plans remain Phase4, where executable engine queries are added.
+
+Cleanup command (repository root):
+docker ps -a --filter label=org.testcontainers=true --format '{{.ID}} {{.Image}} {{.Status}}'
+PASS: exit0, empty output; no Testcontainers containers remained.
+Final unit XML totals verified:188 tests,0 failures,0 errors,0 skipped.
+Phase3 exit fulfilled; next task4.1 manual/webhook trigger APIs. No execution engine yet.

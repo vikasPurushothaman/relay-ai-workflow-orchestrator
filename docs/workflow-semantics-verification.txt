@@ -1,0 +1,115 @@
+Task 1.7 final document verification — 2026-09-25
+All initial checker runs passed. Final run includes completed roadmap consistency.
+No runtime, template engine or JSON Schema validator tests executed.
+Shell startup reports missing Java; Python checks unaffected, setup remains 2.1.
+
+$ python3 scripts/check_workflow_semantics.py
+PASS: links, sections, seven catalog template flags, ten validation rules, twelve test cases and seed paths
+PASS: four source seeds fit selected structural rules; 31 template references; runaway graph has 12 visits before next admission
+PASS: rejects missing node
+PASS: rejects wrong template flag
+PASS: rejects seed path drift
+PASS: rejects broken source link
+PASS: rejects missing cap rule
+PASS: rejects unknown task
+PASS: rejects lost template boundary
+9 checks passed. No application, schema-validator or template-runtime tests run.
+Exit code: 0
+
+$ python3 scripts/check_state_transitions.py
+PASS: five state sets, transition guards/membership/terminal absorption, schema, links and 12 scenarios
+PASS: rejects terminal reopening
+PASS: rejects unknown state
+PASS: rejects missing exhaustion event
+PASS: rejects missing cancellation event
+PASS: rejects missing recovery event
+PASS: rejects broken source link
+PASS: rejects unknown test owner
+PASS: rejects schema status drift
+9 checks passed. No runtime tests run.
+Exit code: 0
+
+$ python3 scripts/check_data_model.py
+PASS: six tables, required fields, links, fixed statuses, constraints/indexes and future test references
+PASS: rejects missing snapshot
+PASS: rejects missing key uniqueness
+PASS: rejects missing lease index
+PASS: rejects broken source link
+PASS: rejects wrong run status
+PASS: rejects missing same-step approval uniqueness
+PASS: rejects unknown test owner
+8 checks passed. No runtime tests run.
+Exit code: 0
+
+$ python3 scripts/check_architecture.py
+PASS: links, R/V/task references, seven handlers, eight API owners, configuration and boundaries
+PASS: rejects missing handler
+PASS: rejects broken link
+PASS: rejects unknown task
+PASS: rejects missing route
+PASS: rejects missing config consumer
+6 checks passed. No runtime tests run.
+Exit code: 0
+
+$ python3 scripts/check_requirements.py
+PASS: requirements matrix, source links, roadmap tasks, verification cases, contracts, fixtures and scope
+PASS: rejects missing fixed route
+PASS: rejects invalid task reference
+PASS: rejects missing node
+PASS: rejects wrong parameter required flag
+PASS: rejects wrong output shape
+PASS: rejects missing payload
+PASS: rejects missing seed
+PASS: rejects broken link
+PASS: rejects lost ambiguity
+PASS: rejects lost status
+PASS: rejects missing requirement
+12 checks passed (1 document validation + 11 negative mutations). No application tests run.
+Exit code: 0
+
+$ python3 scripts/check_mvp.py
+PASS: all R/V references, local links, seven nodes, fixtures and scope boundaries
+PASS: rejects omitted requirement
+PASS: rejects unknown verification case
+PASS: rejects broken source link
+PASS: rejects missing node
+PASS: rejects lost ambiguity
+6 checks passed: document consistency plus 5 invalid-copy cases. No runtime verification.
+Exit code: 0
+
+$ python3 scripts/check_capstone_review.py
+PASS: 16 pinned source files match manifest
+PASS: commit recorded
+PASS: local review links resolve
+PASS: every pack source referenced
+PASS: catalog counts match review
+PASS: fixture counts match review
+PASS: all seed and payload IDs covered
+PASS: all node types covered
+PASS: injection graph ambiguity documented
+PASS: supplied mock emits non-JSON prose
+PASS: empty-ledger false assurance reproduced offline
+PASS: checklist and next item agree
+PASS: API implementation status remains honest
+PASS: local-only publication rule preserved
+PASS: scope corrections and cancellation tracked
+PASS: runtime verification explicitly outstanding
+16 checks passed.
+Exit code: 0
+
+$ python3 docs/source-review/pack/scripts/validate_pack.py
+Pack OK:
+  7 node types, 3 trigger types
+  4 seed workflows, 8 sample payloads
+  15 NL eval cases (3 traps)
+Exit code: 0
+
+Manual source/design review:
+P01–P10: structural versus publish validation defined; catalog required/type/enum rules retained; unchanged seeds and smoke minimal/bad definitions compatible. Draft updates require republish without changing existing snapshots.
+W01–W03: Serialized publish/trigger/edit, immutable IDs, no-op repeated publish; entry determines traversal; all nodes validated, legal loops/unreachable nodes retained.
+W04–W05: Explicit null distinct from missing; values stringify once; latest earlier successful output chosen; retries use persisted resolved input.
+W06–W08: Expense amount 100 uses false branch; numeric parsing distinct from string equality; template flags match catalog. AI schema is literal, strict JSON then validation, one repair; no network schema resolution.
+W09–W10: Final node at cap succeeds; retries/waits reuse reservation; next admission at full cap denied. Only earlier same-run approved data grants action; each approval visit still waits.
+W11–W12: Four seed paths and three intended slow-fulfillment effects preserved. Size limits require LONGTEXT approval message storage; chosen constraints are explicit implementation decisions, not source requirements.
+Official specification consulted: https://json-schema.org/draft/2020-12/json-schema-validation (draft dialect and annotation-only format). Java validator selection/conformance tests remain 2.2/5.7.
+No new PDF/pack discrepancy found. D01 still open; no forced injection branch. No source pack changes, application changes or remote publication.

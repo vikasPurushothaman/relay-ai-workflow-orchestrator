@@ -1,0 +1,38 @@
+Task2.9 component startup verification — 2026-09-25
+
+Command from root: python3 scripts/check_component_startup.py
+Run with approved Docker/localhost access. Exit0.
+Disposable project relay-integration-34a009544e used pinnedMySQL8.4.11 and temporary secret files/SQL migration, no writes to ordinary relay DB.
+PASS: worker against empty schema exits nonzero.
+PASS: packaged API starts JPA/ConnectorJ/Flyway against realMySQL, migration creates probe table+one row, exactly one successful history entry; readiness200/liveness200.
+PASS: worker starts and stays alive, no Tomcat/listener, no additional history entry.
+PASS: disposable DB stop makes readiness503 while liveness remains200; DB restart recovers readiness200.
+PASS: API restart retains one probe row/history entry; migration not reapplied.
+PASS: pending migration rejected, pending table not created; changed executable SQL checksum rejected; future version99 history rejected.
+PASS: wrong credentials fail API startup; successful-start marker absent and actual DB secret not echoed in captured rejection logs.
+PASS: all owned Java processes and disposable Compose volume/network removed.
+Logs: ignored backend/build/component-check/*.log. JPA EntityManagerFactory initialization and graceful shutdown observed. Database outage logs include expected connection warnings.
+
+Read-only existing service probes (urllib.request.urlopen with5-second timeout):
+http://127.0.0.1:5173/console/workflows —200, frontend HTML605bytes.
+http://127.0.0.1:9001/health —200, status ok/name alpha.
+http://127.0.0.1:9210/health —200, status ok/service mock-world.
+http://127.0.0.1:8080/actuator/health/liveness —200,status UP.
+Initial sandbox probes blocked by Operation not permitted; approved repeat succeeded. No service stopped or reconfigured.
+
+Verification scope: packaged existing jar, unchanged application behavior; no Gradle/npm suites rerun. Test-only external migration deliberately precedes3.1 domain schema work. No workflow execution/worker queue, real AI, application auth, crash-recovery or domain-constraint acceptance claimed. D01 unchanged. No publication.
+
+Consistency commands: all exit0.
+python3 scripts/check_architecture.py
+python3 scripts/check_backend_scaffold.py
+python3 scripts/check_capstone_review.py
+python3 scripts/check_console.py
+python3 scripts/check_data_model.py
+python3 scripts/check_frontend_scaffold.py
+python3 scripts/check_mvp.py
+python3 scripts/check_project_layout.py
+python3 scripts/check_recovery.py
+python3 scripts/check_requirements.py
+python3 scripts/check_state_transitions.py
+python3 scripts/check_versions.py
+python3 scripts/check_workflow_semantics.py

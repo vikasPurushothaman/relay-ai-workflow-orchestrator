@@ -1,0 +1,49 @@
+Task3.7 — 2026-09-27
+
+Sources: canonical catalog/seeds; docs/WORKFLOW_SEMANTICS.md P01–P10.
+Pinned validator API/configuration verified against official3.0.6 source archive:
+https://repo.maven.apache.org/maven2/com/networknt/json-schema-validator/3.0.6/json-schema-validator-3.0.6-sources.jar
+Official API overview: https://github.com/networknt/json-schema-validator
+Source archive read in /tmp only; library's bundled standard meta-schemas used, no new remote schema dependency.
+
+Dependency resolution (backend):
+./gradlew --gradle-user-home .gradle/user-home --no-daemon dependencies --configuration runtimeClasspath --write-locks
+./gradlew --gradle-user-home .gradle/user-home --no-daemon test bootJar --write-locks
+Both exit0; pinned3.0.6 added and all resolved configurations locked. Initial source curl
+failed sandbox DNS and succeeded with permission. An accidental default-home wrapper
+version invocation was blocked by the sandbox; all actual builds use the project Gradle home.
+
+Verification (backend):
+./gradlew --gradle-user-home .gradle/user-home --no-daemon --offline test bootJar
+First expanded schema suite:173 tests,1 failure (unused $defs unresolved reference not
+preloaded by library). Added explicit per-schema compilation; regression passed.
+Final offline rerun exit0, BUILD SUCCESSFUL in10s;175 tests, zero failures/errors/skips;
+bootJar built. Catalog-wide required/optional/type/null/enum/unknown checks, four seeds,
+loop/edge/unreachable cases, template grammar/reference/nested-value checks, numeric/URL/
+header controls, schema shape/dialect/vocabulary/local references/resource scopes/anchors/
+dynamic references, unused definitions and referenced annotation policy all pass.
+The isolated HTTP server observed zero requests for rejected remote schemas.
+
+Root: python3 scripts/check_persistence.py --workflows
+Exit0; workflowApiTest passed1 comprehensive real HTTP/MySQL regression in10s, including
+permissive drafts, authenticated CRUD, concurrency, byte bounds and restart persistence.
+Owned disposable MySQL project relay-jpa-aafa5ea0da removed.
+
+No routes, database mutations, publication snapshots, template execution or provider
+integration added. Draft CRUD remains permissive. Publish route/storage is3.8.
+D01 unresolved, unchanged. No user service restart or remote publication.
+
+All13 consistency commands exit0:
+python3 scripts/check_architecture.py
+python3 scripts/check_backend_scaffold.py
+python3 scripts/check_capstone_review.py
+python3 scripts/check_console.py
+python3 scripts/check_data_model.py
+python3 scripts/check_frontend_scaffold.py
+python3 scripts/check_mvp.py
+python3 scripts/check_project_layout.py
+python3 scripts/check_recovery.py
+python3 scripts/check_requirements.py
+python3 scripts/check_state_transitions.py
+python3 scripts/check_versions.py
+python3 scripts/check_workflow_semantics.py

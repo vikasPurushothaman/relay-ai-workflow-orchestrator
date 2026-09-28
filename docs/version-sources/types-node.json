@@ -1,0 +1,175 @@
+{
+  "_id": "@types/node@24.13.6",
+  "dist": {
+    "shasum": "30ba2d8aae3c321fd170fe52a915231a67a4875c",
+    "tarball": "https://registry.npmjs.org/@types/node/-/node-24.13.6.tgz",
+    "fileCount": 88,
+    "integrity": "sha512-SGrw/h3KPFshy3OE6ZL53LMBG5vGQQ8/gIpiqz/kRZhPJ7HgwCEs8LBuNtWLa8dvGZVpSF7+Bf+c11HUrCb/yg==",
+    "signatures": [
+      {
+        "sig": "MEUCIDYM4CKJizybOF0u8ZwcEsRzdJx+LPfU5drDHa+FhXG1AiEArxWTOFBi55nFiQb+8G+jpv2eWsfOCNT1ZrdZibdu3tQ=",
+        "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+      },
+      {
+        "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U",
+        "sig": "MEYCIQDsrOeraNMC/eAvVrTeVM/ZkIh8OkuLJ9e/q/PeERWFwgIhAMW2qKAEtJgqBZjq0VV/v1XqZyRumyHnSGrQgHjpI4G7"
+      }
+    ],
+    "unpackedSize": 2543069
+  },
+  "main": "",
+  "name": "@types/node",
+  "types": "index.d.ts",
+  "license": "MIT",
+  "scripts": {},
+  "version": "24.13.6",
+  "_npmUser": {
+    "name": "types",
+    "email": "ts-npm-types@microsoft.com"
+  },
+  "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/node",
+  "repository": {
+    "url": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+    "type": "git",
+    "directory": "types/node"
+  },
+  "description": "TypeScript definitions for node",
+  "directories": {},
+  "maintainers": [
+    {
+      "name": "types",
+      "email": "ts-npm-types@microsoft.com"
+    }
+  ],
+  "_nodeVersion": "24.20.0",
+  "contributors": [
+    {
+      "url": "https://github.com/Microsoft",
+      "name": "Microsoft TypeScript",
+      "githubUsername": "Microsoft"
+    },
+    {
+      "url": "https://github.com/jkomyno",
+      "name": "Alberto Schiabel",
+      "githubUsername": "jkomyno"
+    },
+    {
+      "url": "https://github.com/r3nya",
+      "name": "Andrew Makarov",
+      "githubUsername": "r3nya"
+    },
+    {
+      "url": "https://github.com/btoueg",
+      "name": "Benjamin Toueg",
+      "githubUsername": "btoueg"
+    },
+    {
+      "url": "https://github.com/touffy",
+      "name": "David Junger",
+      "githubUsername": "touffy"
+    },
+    {
+      "url": "https://github.com/mohsen1",
+      "name": "Mohsen Azimi",
+      "githubUsername": "mohsen1"
+    },
+    {
+      "url": "https://github.com/galkin",
+      "name": "Nikita Galkin",
+      "githubUsername": "galkin"
+    },
+    {
+      "url": "https://github.com/eps1lon",
+      "name": "Sebastian Silbermann",
+      "githubUsername": "eps1lon"
+    },
+    {
+      "url": "https://github.com/WilcoBakker",
+      "name": "Wilco Bakker",
+      "githubUsername": "WilcoBakker"
+    },
+    {
+      "url": "https://github.com/trivikr",
+      "name": "Trivikram Kamat",
+      "githubUsername": "trivikr"
+    },
+    {
+      "url": "https://github.com/yoursunny",
+      "name": "Junxiao Shi",
+      "githubUsername": "yoursunny"
+    },
+    {
+      "url": "https://github.com/ExE-Boss",
+      "name": "ExE Boss",
+      "githubUsername": "ExE-Boss"
+    },
+    {
+      "url": "https://github.com/peterblazejewicz",
+      "name": "Piotr B\u0142a\u017cejewicz",
+      "githubUsername": "peterblazejewicz"
+    },
+    {
+      "url": "https://github.com/addaleax",
+      "name": "Anna Henningsen",
+      "githubUsername": "addaleax"
+    },
+    {
+      "url": "https://github.com/NodeJS",
+      "name": "NodeJS Contributors",
+      "githubUsername": "NodeJS"
+    },
+    {
+      "url": "https://github.com/LinusU",
+      "name": "Linus Unneb\u00e4ck",
+      "githubUsername": "LinusU"
+    },
+    {
+      "url": "https://github.com/wafuwafu13",
+      "name": "wafuwafu13",
+      "githubUsername": "wafuwafu13"
+    },
+    {
+      "url": "https://github.com/mcollina",
+      "name": "Matteo Collina",
+      "githubUsername": "mcollina"
+    },
+    {
+      "url": "https://github.com/Semigradsky",
+      "name": "Dmitry Semigradsky",
+      "githubUsername": "Semigradsky"
+    },
+    {
+      "url": "https://github.com/Renegade334",
+      "name": "Ren\u00e9",
+      "githubUsername": "Renegade334"
+    },
+    {
+      "url": "https://github.com/anonrig",
+      "name": "Yagiz Nizipli",
+      "githubUsername": "anonrig"
+    }
+  ],
+  "dependencies": {
+    "undici-types": "~7.18.0"
+  },
+  "typesVersions": {
+    "<=5.6": {
+      "*": [
+        "ts5.6/*"
+      ]
+    },
+    "<=5.7": {
+      "*": [
+        "ts5.7/*"
+      ]
+    }
+  },
+  "_hasShrinkwrap": false,
+  "peerDependencies": {},
+  "typeScriptVersion": "5.6",
+  "_npmOperationalInternal": {
+    "host": "s3://npm-registry-packages-npm-production",
+    "tmp": "tmp/node_24.13.6_1789776746010_0.21095376387552545"
+  },
+  "typesPublisherContentHash": "f7abb6ff9bff6be903c0a2b1cef90130ac2012f63be0b05e32126cb701326609"
+}

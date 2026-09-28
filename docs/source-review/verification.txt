@@ -1,0 +1,21 @@
+Pack OK:
+  7 node types, 3 trigger types
+  4 seed workflows, 8 sample payloads
+  15 NL eval cases (3 traps)
+PASS: 16 pinned source files match manifest
+PASS: commit recorded
+PASS: local review links resolve
+PASS: every pack source referenced
+PASS: catalog counts match review
+PASS: fixture counts match review
+PASS: all seed and payload IDs covered
+PASS: all node types covered
+PASS: injection graph ambiguity documented
+PASS: supplied mock emits non-JSON prose
+PASS: empty-ledger false assurance reproduced offline
+PASS: checklist and next item agree
+PASS: API implementation status remains honest
+PASS: local-only publication rule preserved
+PASS: scope corrections and cancellation tracked
+PASS: runtime verification explicitly outstanding
+16 checks passed.

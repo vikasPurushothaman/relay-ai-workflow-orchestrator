@@ -1,0 +1,41 @@
+Task 2.7 frontend scaffold — 2026-09-25
+
+Runtime/dependencies:
+source ~/.nvm/nvm.sh && nvm install 24.21.0 — exit 0; Node archive SHA-256 matched; installed Node24.21.0/npm11.19.0, no default change.
+npm view @playwright/test version engines --json — exit 0, 1.63.0, Node >=20.
+In frontend, source ~/.nvm/nvm.sh && nvm use before npm commands:
+npm install — exit 0; exact baseline packages and Playwright installed, package-lock.json created, audit zero vulnerabilities.
+npm test && npm run build && npx playwright install chromium — exit 0; initial29 transport tests passed, strict typecheck/build passed; Chromium153.0.8010.12/v1243 downloaded.
+
+Clean verification:
+npm ci && npm test && npm run build && npm run test:browser — overall exit 1 at browser suite.
+npm ci: exit 0; audit zero vulnerabilities; optional fsevents install-script approval warning. No script approval needed for successful tests/build.
+npm test: 31 passed, zero failures/skips; 30 API transport cases plus actual Vite proxy test.
+npm run build: exit 0; strict TypeScript and Vite8.3.1 production build passed.
+npm run test:browser: 8 passed, 1 failed; back-navigation heading focus inactive.
+Correction: schedule heading focus with requestAnimationFrame and cancel obsolete callback; regression test waits for destination focus before navigating back.
+Final npm run build && npm run test:browser: exit 0; typecheck/build succeeded; 9 Chromium tests passed in3.2s.
+Total final coverage:31 transport/proxy +9 browser tests =40 passing, no skipped tests.
+Desktop1280x720 and mobile320x720 screenshots visually inspected: navigation and text fit; long script-like ID escaped/wrapped, no horizontal overflow. Screenshots in ignored frontend/test-results/.
+
+Local development smoke:
+npm run dev — running on127.0.0.1:5173, left available for user.
+curl --max-time 5 -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:5173/console/workflows — exit0,200.
+curl --max-time 5 -s -i http://127.0.0.1:5173/actuator/health/liveness — exit0,200 {"status":"UP"}; actual proxy to existing backend scaffold.
+
+Root checks (all exit0):
+python3 scripts/check_frontend_scaffold.py
+python3 scripts/check_architecture.py
+python3 scripts/check_backend_scaffold.py
+python3 scripts/check_capstone_review.py
+python3 scripts/check_console.py
+python3 scripts/check_data_model.py
+python3 scripts/check_mvp.py
+python3 scripts/check_project_layout.py
+python3 scripts/check_recovery.py
+python3 scripts/check_requirements.py
+python3 scripts/check_state_transitions.py
+python3 scripts/check_versions.py
+python3 scripts/check_workflow_semantics.py
+
+Boundary: pages are placeholders with no automatic requests/data/actions. API client tested with injected transport and proxy with local stub; actual liveness proxy separately verified. Protected API session/CORS/domain integration and complete accessibility/200% zoom walkthrough remain later tasks. No backend route, database, or API behavior changed; no Gradle rerun. No publication.

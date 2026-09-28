@@ -1,0 +1,233 @@
+Relay Phase6 verification evidence
+==================================
+
+Task 6.1 — Run list/detail APIs (2026-09-28)
+--------------------------------------------
+
+Scope: GET /runs (filters, keyset cursor paging) and GET /runs/{runId}
+(run summary + ordered, paged steps[]). Trace payload fields (run input,
+resolved inputs, outputs, attempt records, step errors, AI usage, redaction)
+are task6.2 and were not implemented or tested here. No schema change.
+
+Environment: macOS (Darwin 25.6.0), OpenJDK 21, Gradle Wrapper 9.8.0 with the
+project-local Gradle home, Docker Engine for Testcontainers (MySQL image pinned
+by digest in MySqlIntegrationSupport). Worked from backend/.
+
+Commands and actual outcomes, in order
+--------------------------------------
+
+1. ./gradlew test --tests com.relay.api.RunQueryTest --offline -q
+   FAILED to resolve dependencies: the default Gradle home has no offline cache.
+   Not a code failure. All later commands use the project-local Gradle home.
+
+2. ./gradlew --gradle-user-home .gradle/user-home --no-daemon --offline test --tests com.relay.api.RunQueryTest -q
+   PASS: RunQueryTest tests=12 skipped=0 failures=0 errors=0.
+
+3. ./gradlew --gradle-user-home .gradle/user-home --no-daemon --offline testcontainersTest --tests '*RunQueryMySqlTest' -q
+   FAILED at compileTestJava (test-code error: AssertJ treated JsonNode as an
+   Iterable in one assertion). Test rewritten; no production change.
+
+4. Same command as 3.
+   PASS: RunQueryMySqlTest tests=3 skipped=0 failures=0 errors=0 (real
+   container started; per-test times 4.2s / 0.8s / 0.5s).
+
+5. ./gradlew --gradle-user-home .gradle/user-home --no-daemon --offline test bootJar testcontainersTest
+   BUILD SUCCESSFUL. Unit: 219 tests, 0 skipped/failures/errors.
+   Real-MySQL: 31 tests, 0 skipped/failures/errors.
+
+6. Added assertions backing every field in the API documentation example, then
+   reran: ./gradlew ... test --tests com.relay.api.RunQueryTest testcontainersTest --tests '*RunQueryMySqlTest' -q
+   FAILED 1 of 3: expected attempt_count 0 for a delay step, actual 1. The
+   documentation claim ("0 for nodes that never dispatch") was wrong: per
+   DATA_MODEL, final_attempt counts prepared handler invocations, and every
+   executed node gets at least one. Documentation and test expectation
+   corrected to 1; production code unchanged.
+
+7. ./gradlew --gradle-user-home .gradle/user-home --no-daemon --offline testcontainersTest --tests '*RunQueryMySqlTest' -q
+   PASS: tests=3 skipped=0 failures=0 errors=0.
+
+8. Final full regression (same command as 5):
+   BUILD SUCCESSFUL. Unit: 219 tests, 0 skipped/failures/errors.
+   Real-MySQL: 31 tests, 0 skipped/failures/errors.
+
+9. Document consistency: python3 scripts/check_<name>.py for architecture,
+   backend_scaffold, capstone_review, console, data_model, frontend_scaffold,
+   mvp, project_layout, recovery, requirements, state_transitions, versions,
+   workflow_semantics.
+   First run: 9 exit 0; 4 exit 1 (backend_scaffold, capstone_review, console,
+   requirements) because they pinned the old API status sentence "run-read APIs
+   remain unimplemented", which is no longer true. The four pins were updated
+   to the new accurate status sentence. backend_scaffold then failed on the
+   not-yet-written link to this file; rerun after creating it is recorded below.
+
+What the tests cover (see API_DOCUMENTATION.md "Run visibility — task6.1")
+-------------------------------------------------------------------------
+
+RunQueryTest (unit): cursor round-trip incl. 128 emoji code points, epoch and
+":" inside IDs; rejection of non-base64url, padded, too-short, missing
+separator, negative/non-numeric/19-digit micros, empty/129-point run IDs,
+>1024 chars, invalid UTF-8 and beyond-DATETIME timestamps; list defaults,
+limit 1/100 accepted and 0/101/-1/abc/1.5/9999999999/" 5" rejected; all six
+statuses accepted, pending/SUCCEEDED rejected; repeated and unknown params
+rejected; steps_after/steps_limit boundaries.
+
+RunQueryMySqlTest (real HTTP + MySQL):
+- routesRequireManagementAuthentication: no token, wrong token, Basic -> 401.
+- listFiltersAndPagesStablyServerSide: forced created_at tie ordered by run_id;
+  global/filtered/combined filters; unknown workflow -> empty page; empty
+  status == unfiltered; limit-1 walk complete and ordered; exact-fit page has
+  null cursor; a run accepted between pages neither duplicates nor shifts the
+  continuation and appears on a fresh first page; ten invalid inputs -> 400.
+- detailReturnsCompleteOrderedStepsAcrossPages: queued run (empty steps,
+  max_steps from snapshot, entry node); delay->condition loop with cap 5 ends
+  failed with error {max_steps, b}, steps a,b,a,b,a seq 1..5 with branch and
+  timing; steps_limit=2 walk returns each step once; waiting approval step;
+  cancellation fields after cancel; 404 for missing/129-char IDs; 400 for bad
+  step params (validated before lookup).
+- Every successful response is asserted free of the webhook secret, a
+  sentinel trigger-input value, definition_snapshot and execution_policy.
+
+Limitations
+-----------
+- Trace payload fields and redaction are task6.2.
+- The supplied smoke test (docs/source-review/pack/scripts/smoke_test.py) was
+  not run in this task; it is scheduled for 7.1 against a running stack.
+- No console UI consumes these routes yet (6.3+).
+
+10. Rerun of all 13 document consistency scripts after creating this file:
+    all 13 exit 0.
+
+
+Tasks 6.2–6.12 — Trace payload, console views and live verification (2026-09-28)
+-------------------------------------------------------------------------------
+
+Backend (6.2, plus the 6.10 approvals projection change), from backend/:
+
+1. ./gradlew ... test --tests com.relay.api.TraceRedactorTest --tests com.relay.api.RunQueryTest testcontainersTest --tests '*RunQueryMySqlTest' -q
+   Unit PASS (TraceRedactorTest 4, RunQueryTest 12). MySQL: 2 of 4 FAILED, all
+   test-side: (a) the 6.1 assertion "no output/resolved_input" was superseded by
+   6.2 on purpose, (b) the webhook acceptance in the new test omitted the secret.
+   Tests corrected.
+2. Rerun: 1 failure — prepare() returned null; the recorded run error was
+   invalid_header because the engine rejects workflow-supplied Authorization
+   headers (existing safeguard). Test changed to X-Api-Key (allowed, and still
+   sensitive for redaction). Then a DefinitionException: my template used
+   {{steps.a...}}; project grammar is {{nodes.a.output...}}. Fixed.
+3. Rerun: RunQueryMySqlTest 4/4 PASS.
+4. Full `test bootJar testcontainersTest`: 223 unit PASS; 12 of 32 MySQL tests
+   FAILED, all in HumanAiMySqlTest (code untouched by 6.2) with
+   "Check constraint 'ck_run_time' is violated" and unclaimable jobs. Diagnosis:
+   cancel_requested_at (MySQL clock) earlier than created_at (JVM clock), i.e. a
+   transient host/Docker-VM clock skew during that run. Clocks compared right
+   after (host vs container `date -u`): 1 s apart (container start latency).
+   HumanAiMySqlTest alone then passed 14/14. Recorded as an environmental flake;
+   latent risk noted below. The command's exit status was masked by my wrapper in
+   that run; later runs capture it.
+5. Full rerun: BUILD SUCCESSFUL — 223 unit, 32 real-MySQL, 0 skipped/failed.
+6. After adding workflow_id/created_at to GET /approvals:
+   ./gradlew ... test testcontainersTest --tests '*HumanAiMySqlTest' -> exit 0,
+   HumanAiMySqlTest 14/14, all unit tests pass.
+7. Final full regression: see the final entry at the end of this file.
+
+Frontend (6.3–6.11), from frontend/:
+
+8. npx tsc --noEmit -> 1 error (unused helper); fixed by making ai_usage_complete
+   parsing strictly boolean. Then clean.
+9. npm test -> 57 tests, 57 pass (47 existing + 10 in tests/model.test.ts).
+10. npm run build && npx playwright test -> 22 passed, 2 failed:
+    - focus was lost to <body> after connecting (real keyboard gap) -> focus now
+      moves to the page heading on connect;
+    - Escape did not close an inbox confirmation (autoFocus did not apply in the
+      list) -> confirm button focused via effect and Escape handled on the item.
+11. Rerun: 23 passed, 1 failed: the unknown-outcome test raced the immediate
+    reconciliation read (behaviour correct per design). Mock now delays the next
+    read so the blocked-then-re-enabled states are both asserted.
+12. Rerun: 24/24 PASS. `npx playwright test --repeat-each=3`: 72/72 PASS.
+13. Screenshot review found overlapping status/duration text in the trace row
+    header at 320 px; grid placement fixed; 320 px tests rerun 2/2 PASS.
+
+Live end-to-end (6.7, 6.12) — isolated stack, cleaned up afterwards:
+- Disposable MySQL container (pinned image) on 127.0.0.1:3307; packaged API on
+  8081 and worker; supplied mock world on 9310 and mock provider on 9311
+  (RELAY_AI_MODE=mock-http). RELAY_HTTP_ALLOWED_ORIGINS also allowed
+  localhost:9210 because wf_runaway's seed GETs that URL (read-only). The
+  user's own processes on 8080/5173/9210 and the Compose database were not used
+  or modified. The real OpenRouter provider was not used (no spend).
+- API readiness 200 after 6 s; 4 seeds listed as published.
+- Demo curl commands (docs/CONSOLE_DEMO.md), actual results:
+  large expense x2 -> 202, both waiting_approval (2 steps);
+  small expense -> 202, succeeded (2 steps);
+  wrong webhook secret -> 401 invalid_webhook_secret;
+  wf_runaway manual -> 202, failed with 12 steps (cap 12);
+  support triage (pay_002 body) -> 202, failed invalid_ai_json at classify with
+  attempts initial + schema_repair. Expected: the supplied mock provider always
+  replies in prose (already recorded in Phase5); the AI-success branch needs the
+  real provider.
+- RELAY_E2E_API=http://localhost:8081 ... npx playwright test -c playwright.live.config.ts
+  6/6 PASS (18.4 s): published list + frozen definition without secret; API
+  run -> history -> trace waiting -> inbox approve -> succeeded with decider
+  evidence, token absent from URL/storage; reject -> cancelled "approval was
+  rejected"; small -> auto_ok only; runaway -> "Step cap reached", 12 of 12,
+  12 rows; slow fulfillment cancelled during pack_delay.
+- Independent API check of the cancelled run: status cancelled,
+  operator_cancelled by demo-operator, steps confirm=succeeded,
+  pack_delay=cancelled. Mock world /admin/ledger: 4 email.send entries, one per
+  completed notify, distinct idempotency keys; no shipment, no notice for the
+  rejected run.
+- Teardown: worker, API, both mocks stopped; container removed; ports
+  8081/9310/9311/3307/4173 free; generated DB password/token files deleted.
+
+14. Frontend rebuilt for the default API origin (dist references
+    localhost:8080 only); npm test 57/57; npx playwright test 24/24.
+15. Document checks: all 13 scripts exit 0.
+
+Limitations
+- AI success branch with approval was not exercised live (mock provider replies
+  in prose by design; real provider not used without the user's go-ahead).
+- Latent: run created_at uses the JVM clock while engine times use MySQL's
+  UTC_TIMESTAMP; a host/DB clock skew can violate ck_run_time (seen once in
+  tests). Not changed here; candidate for Phase7/8 review.
+- Supplied smoke test and kill-and-resume drill are Phase7 (7.1, 7.3).
+
+16. Final full backend regression after all Phase6 changes:
+    ./gradlew --gradle-user-home .gradle/user-home --no-daemon --offline test bootJar testcontainersTest
+    exit 0, BUILD SUCCESSFUL — 223 unit and 32 real-MySQL tests, 0 skipped/failed.
+
+
+Task 6.13 — Phase6 review corrections (2026-09-28, complete)
+---------------------------------------------------------
+
+Implemented four review corrections: stale approval actions are disabled;
+unknown cancellation waits for a read that started after the command and never
+automatically resends; trace continuation is strictly advancing/bounded and an
+incomplete trace is reported rather than displayed as complete; GET /runs adds
+the frozen-snapshot max_steps field and history displays count/cap. A fifth
+route-transition issue found by the new cancellation test was fixed by keying
+the cancellation control to run_id. useResource now queues one requested
+refresh behind an in-flight poll so mutation reconciliation cannot be dropped.
+
+Commands and actual results:
+
+1. Focused backend RunQueryTest: PASS.
+2. ./gradlew --gradle-user-home .gradle/user-home --no-daemon --offline test bootJar
+   PASS: BUILD SUCCESSFUL; 224 unit tests, 0 failures/errors/skips; packaged jar built.
+3. npm test: PASS 58/58.
+4. npm run build: PASS; TypeScript and Vite production build clean.
+5. npx playwright test: PASS 27/27, including stale approval recovery,
+   post-command cancellation reconciliation, explicit incomplete trace and
+   run-history cap display.
+6. The 13 named document consistency scripts: all exit 0.
+7. git diff --check: PASS.
+8. ./gradlew --gradle-user-home .gradle/user-home --no-daemon --offline testcontainersTest
+   BLOCKED before tests: 9 suite initialization errors from
+   DockerClientProviderStrategy because Docker was unavailable. `df -h .`
+   reported the data volume at 100% with about 292 MiB free. The task remains
+   open; the changed MySQL projection test has not been counted as passing.
+9. Rerun after the disk was freed (df: 15 GiB available; Docker 29.4.3):
+   ./gradlew --gradle-user-home .gradle/user-home --no-daemon --offline test bootJar testcontainersTest
+   exit 0, BUILD SUCCESSFUL in 1m 56s. test/bootJar UP-TO-DATE (inputs
+   unchanged since step 2's pass; 224 unit, 0 failures). testcontainersTest
+   executed: 32 real-MySQL tests across 9 suites, 0 skipped/failures/errors.
+   RunQueryMySqlTest (4/4) includes the GET /runs max_steps=1 projection and
+   the null max_steps result after JSON_REMOVE of the snapshot cap.
+   Task 6.13 closed.

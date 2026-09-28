@@ -1,0 +1,179 @@
+Task 2.4 — Spring Boot/Gradle scaffold — 2026-09-25
+Initial setup:
+- curl -fLsS --max-time 60 https://services.gradle.org/distributions/gradle-9.8.0-bin.zip -o /private/tmp/relay-gradle-9.8.0-bin.zip — exit 0.
+- Python SHA-256 comparison against docs/version-sources/gradle.sha256 passed; archive extracted to /private/tmp/relay-gradle-bootstrap. Python extraction did not preserve executable mode; initial launcher call exited 126, corrected with chmod +x.
+- Gradle bootstrap command (below) initially failed because its file-lock socket was denied by sandbox; identical command succeeded after escalation, BUILD SUCCESSFUL.
+/private/tmp/relay-gradle-bootstrap/gradle-9.8.0/bin/gradle -p /private/tmp/relay-wrapper-build --gradle-user-home '/Users/user/vikas/capStone/AI Workflow Orchestrator/backend/.gradle/user-home' --no-daemon wrapper --gradle-version 9.8.0 --distribution-type bin --gradle-distribution-sha256-sum bafd5ce9cfaea0fbccfdc8439a1ac42fbd4cd9c89dc9a988228d8a2639a58e6c
+- curl -fLsS --max-time 30 https://services.gradle.org/distributions/gradle-9.8.0-wrapper.jar.sha256 -o /private/tmp/relay-gradle-wrapper.sha256 — exit 0.
+- Generated wrapper JAR matched official SHA-256 238e777fcddd7e34f9708186085def2abd6e08e658505b38718d79d74c21abd5. Copied generated files; provenance saved in docs/backend-wrapper-provenance.json.
+- Initial copy ran from wrong working directory and created duplicate backend/backend wrapper files before failing to locate docs; duplicate generated files removed and copy rerun from root. No pre-existing files removed.
+
+Primary implementation reference: https://docs.spring.io/spring-boot/reference/actuator/endpoints.html (Boot 4.1.1 health groups, exposure, status mapping). Boot 4 auto-configuration classes checked against official module documentation/source.
+
+First backend build: ./gradlew --gradle-user-home .gradle/user-home --no-daemon test bootJar --write-locks — exit 1; compilation and bootJar passed, 22 tests ran, 1 failed. Malformed GET JSON produced MVC 400 followed by ERROR dispatch masked as 401 by security. Added internal ERROR-dispatch permission (direct /error still denied), corrected the malformed-body expectation to 400, and asserted no message/trace/payload leakage.
+
+Second build (backend): ./gradlew --gradle-user-home .gradle/user-home --no-daemon test bootJar --write-locks
+Result: exit 0, BUILD SUCCESSFUL in 9s. 23 HTTP test invocations, zero failures/errors/skips (JUnit XML). Jar created and application dependency lock state saved. Plugin version is pinned in build.gradle; no separate buildscript lockfile was created despite Gradle's generic persistence message.
+./gradlew --gradle-user-home .gradle/user-home --no-daemon --version
+Result: exit 0; Gradle 9.8.0; launcher JDK 21.0.12.1; macOS aarch64.
+./gradlew --gradle-user-home .gradle/user-home --no-daemon --offline dependencies --configuration runtimeClasspath > ../docs/backend-runtime-dependencies.txt
+Result: exit 0; saved locked dependency report. Versions match task 2.2: Boot 4.1.1, Hibernate 7.4.5.Final, Flyway/core+mysql 12.4.0, Connector/J 9.7.0, Jackson 3.1.5, Spring Framework 7.0.9, Security 7.1.1 and JUnit 6.0.3.
+
+python3 scripts/check_backend_smoke.py (run with permission for temporary localhost server)
+Result: exit 0.
+java -jar backend/build/libs/relay-backend-0.1.0.jar --spring.profiles.active=scaffold --server.port=0
+GET /actuator/health/liveness: 200 {"status":"UP"}
+GET /actuator/health/readiness: 503 {"status":"OUT_OF_SERVICE"}
+GET /actuator/health: 503 {"groups":["liveness","readiness"],"status":"OUT_OF_SERVICE"}
+GET /actuator/env: 401 with empty body
+PASS: own server stopped after probes.
+java -jar backend/build/libs/relay-backend-0.1.0.jar --server.port=0 (no profile/database)
+PASS: exited nonzero with Failed to configure a DataSource; scaffold exclusions are not global.
+Raw startup logs are local/ignored under backend/build. No server left running.
+
+Limitations: no MySQL, migrations, repositories, token auth, worker, frontend or workflow behavior implemented/verified. No real credentials used. Mockito/Byte Buddy test agent and CDS warnings appeared on Java 21; test execution succeeded. No publication/build scan.
+
+$ python3 scripts/check_backend_scaffold.py
+PASS: generated wrapper files, executable launcher, archive pin and wrapper checksum
+PASS: all required starters and managed library versions locked; no H2 substitute
+PASS: 23 passing HTTP tests, none skipped, and packaged jar exists
+PASS: route contracts, implementation boundaries and documentation links
+exit=0
+
+$ python3 scripts/check_project_layout.py
+PASS: 4 directories; architecture keys, blank secrets, mock URLs and 9 recovery defaults
+PASS: 5 invalid template mutations rejected
+PASS: 21 ignored and 19 retained paths via git check-ignore
+PASS: setup links and implementation boundary
+exit=0
+
+$ python3 scripts/check_versions.py
+PASS: 19 source snapshots match provenance
+PASS: pins, metadata, engines/peers, BOM, image architectures, source compatibility and links
+PASS: 4 invalid document mutations rejected
+PASS: 4 engine/peer boundary cases
+10 checks passed (source integrity, baseline, 4 mutations, 4 boundaries).
+exit=0
+
+$ python3 scripts/check_architecture.py
+Traceback (most recent call last):
+  File "/Users/user/vikas/capStone/AI Workflow Orchestrator/scripts/check_architecture.py", line 62, in <module>
+    main()
+    ~~~~^^
+  File "/Users/user/vikas/capStone/AI Workflow Orchestrator/scripts/check_architecture.py", line 42, in main
+    validate(text)
+    ~~~~~~~~^^^^^^
+  File "/Users/user/vikas/capStone/AI Workflow Orchestrator/scripts/check_architecture.py", line 37, in validate
+    assert marker in text, 'Missing boundary: ' + marker
+           ^^^^^^^^^^^^^^
+AssertionError: Missing boundary: Design only
+exit=1
+
+Offline locked build (backend): ./gradlew --gradle-user-home .gradle/user-home --no-daemon --offline test bootJar — exit 0, BUILD SUCCESSFUL in 7s. test and bootJar executed; compile/resources were UP-TO-DATE. Saved locks used without --write-locks. 23 tests passed again.
+Document regression run: wrapper/layout/version checks passed; architecture checker failed on obsolete 'Design only' marker after the scaffold status update. Updated it to require the explicit remaining execution-architecture boundary. Also replaced console checker's stale hard-coded next-item 2.1 with first-unfinished-item validation; domain-API status assertions now distinguish implemented health probes from unimplemented workflow routes.
+
+$ python3 scripts/check_architecture.py
+PASS: links, R/V/task references, seven handlers, eight API owners, configuration and boundaries
+PASS: rejects missing handler
+PASS: rejects broken link
+PASS: rejects unknown task
+PASS: rejects missing route
+PASS: rejects missing config consumer
+6 checks passed. No runtime tests run.
+exit=0
+
+$ python3 scripts/check_requirements.py
+PASS: requirements matrix, source links, roadmap tasks, verification cases, contracts, fixtures and scope
+PASS: rejects missing fixed route
+PASS: rejects invalid task reference
+PASS: rejects missing node
+PASS: rejects wrong parameter required flag
+PASS: rejects wrong output shape
+PASS: rejects missing payload
+PASS: rejects missing seed
+PASS: rejects broken link
+PASS: rejects lost ambiguity
+PASS: rejects lost status
+PASS: rejects missing requirement
+12 checks passed (1 document validation + 11 negative mutations). No application tests run.
+exit=0
+
+$ python3 scripts/check_console.py
+PASS: five screens, API dependencies, six statuses, thirteen trace fields, fixtures, twelve test cases and Phase 1 consistency
+PASS: rejects missing screen
+PASS: rejects missing status
+PASS: rejects missing trace field
+PASS: rejects missing conflict reconciliation
+PASS: rejects broken source link
+PASS: rejects missing fixed API dependency
+PASS: rejects lost token boundary
+PASS: rejects unknown task
+9 checks passed. No browser, accessibility or runtime API tests run.
+exit=0
+
+$ python3 scripts/check_capstone_review.py
+PASS: 16 pinned source files match manifest
+PASS: commit recorded
+PASS: local review links resolve
+PASS: every pack source referenced
+PASS: catalog counts match review
+PASS: fixture counts match review
+PASS: all seed and payload IDs covered
+PASS: all node types covered
+PASS: injection graph ambiguity documented
+PASS: supplied mock emits non-JSON prose
+PASS: empty-ledger false assurance reproduced offline
+PASS: checklist and next item agree
+PASS: API implementation status remains honest
+PASS: local-only publication rule preserved
+PASS: scope corrections and cancellation tracked
+PASS: runtime verification explicitly outstanding
+16 checks passed.
+exit=0
+
+$ python3 docs/source-review/pack/scripts/validate_pack.py
+Pack OK:
+  7 node types, 3 trigger types
+  4 seed workflows, 8 sample payloads
+  15 NL eval cases (3 traps)
+exit=0
+
+Final roadmap/status check: python3 scripts/check_backend_scaffold.py
+PASS: generated wrapper files, executable launcher, archive pin and wrapper checksum
+PASS: all required starters and managed library versions locked; no H2 substitute
+PASS: 23 passing HTTP tests, none skipped, and packaged jar exists
+PASS: route contracts, implementation boundaries and documentation links
+exit=0
+
+Final roadmap/status check: python3 scripts/check_console.py
+PASS: five screens, API dependencies, six statuses, thirteen trace fields, fixtures, twelve test cases and Phase 1 consistency
+PASS: rejects missing screen
+PASS: rejects missing status
+PASS: rejects missing trace field
+PASS: rejects missing conflict reconciliation
+PASS: rejects broken source link
+PASS: rejects missing fixed API dependency
+PASS: rejects lost token boundary
+PASS: rejects unknown task
+9 checks passed. No browser, accessibility or runtime API tests run.
+exit=0
+
+Final roadmap/status check: python3 scripts/check_capstone_review.py
+PASS: 16 pinned source files match manifest
+PASS: commit recorded
+PASS: local review links resolve
+PASS: every pack source referenced
+PASS: catalog counts match review
+PASS: fixture counts match review
+PASS: all seed and payload IDs covered
+PASS: all node types covered
+PASS: injection graph ambiguity documented
+PASS: supplied mock emits non-JSON prose
+PASS: empty-ledger false assurance reproduced offline
+PASS: checklist and next item agree
+PASS: API implementation status remains honest
+PASS: local-only publication rule preserved
+PASS: scope corrections and cancellation tracked
+PASS: runtime verification explicitly outstanding
+16 checks passed.
+exit=0

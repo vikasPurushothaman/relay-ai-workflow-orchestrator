@@ -1,0 +1,82 @@
+{
+  "retrieved": "2026-09-25",
+  "note": "Read-only published metadata. types-node.json is the selected 24.13.6 version entry extracted from the registry response. schema-selected.pom is a considered but unselected 3.0.7 candidate; schema.pom is the selected 3.0.6. Full source snapshots are evidence, not dependencies installed in this project.",
+  "files": {
+    "gradle.json": {
+      "url": "https://services.gradle.org/versions/current",
+      "sha256": "38d95ddff9b9062f0df76f9ce08bcd6fb979ae2543088321d57e6de6374cbb95"
+    },
+    "gradle.sha256": {
+      "url": "https://services.gradle.org/distributions/gradle-9.8.0-bin.zip.sha256",
+      "sha256": "6490bf814d1e8d6e42841818d69717c1601d5ad6a5d4b1dc1ecc68bf340cfe47"
+    },
+    "node.json": {
+      "url": "https://nodejs.org/dist/index.json",
+      "sha256": "700401a06eb352ec19100649afbf767f76db33f194b22a9b903b3ff48e3bc482"
+    },
+    "boot-bom.pom": {
+      "url": "https://repo.maven.apache.org/maven2/org/springframework/boot/spring-boot-dependencies/4.1.1/spring-boot-dependencies-4.1.1.pom",
+      "sha256": "1c929eeccb48f8ee12225e9fec725177170b89575754bd903f184c185db77775"
+    },
+    "schema.pom": {
+      "url": "https://repo.maven.apache.org/maven2/com/networknt/json-schema-validator/3.0.6/json-schema-validator-3.0.6.pom",
+      "sha256": "bb89513afe9c222316dd3c80f70914cde2d5cf6ea7e018d9291192e88520bf9f"
+    },
+    "schema-selected.pom": {
+      "url": "https://repo.maven.apache.org/maven2/com/networknt/json-schema-validator/3.0.7/json-schema-validator-3.0.7.pom",
+      "sha256": "5bbf1ad11cb724186826f43502acf547f1780135bf6228d6ca933c78fab7434b"
+    },
+    "mysql-image.txt": {
+      "url": "https://raw.githubusercontent.com/docker-library/official-images/master/library/mysql",
+      "sha256": "5a201b90bfe4539322c93cfbda91cc08abbeb2e1a02c595cd598d7b27eadedd6"
+    },
+    "flyway-mysql.java": {
+      "url": "https://raw.githubusercontent.com/flyway/flyway/flyway-12.4.0/flyway-database/flyway-mysql/src/main/java/org/flywaydb/database/mysql/MySQLDatabase.java",
+      "sha256": "ce90962c9c23f4a8865a3d037a1a2eac0e563261f327f223b848d0108399183f"
+    },
+    "vite.json": {
+      "url": "https://registry.npmjs.org/vite/latest",
+      "sha256": "693145830b40049b358ec7171170063338445754870d3dd2074dd29415829598"
+    },
+    "vite-react.json": {
+      "url": "https://registry.npmjs.org/@vitejs/plugin-react/latest",
+      "sha256": "214214a0775afce1d095d150d902892decc1ddf99759b15abaf6ea677cf6039d"
+    },
+    "react.json": {
+      "url": "https://registry.npmjs.org/react/latest",
+      "sha256": "c9b7f5adeab67cd3146ffc69712aee7ddc37c23e656e41feaaa5624dff4e02aa"
+    },
+    "react-dom.json": {
+      "url": "https://registry.npmjs.org/react-dom/latest",
+      "sha256": "f7bb2eaf8d193af94c0b1749f05d7a0a8475c3d913aec87f1cb93e56ac860877"
+    },
+    "typescript.json": {
+      "url": "https://registry.npmjs.org/typescript/latest",
+      "sha256": "28a8ef314c6bbc3fddb831088f80eb2fcac6351cb618c8ac029f7229f587b8aa"
+    },
+    "npm.json": {
+      "url": "https://registry.npmjs.org/npm/latest",
+      "sha256": "daf98fbb3a60dc64b63605c8854c26fc2b22271512ddb8a92fb5b5eb7f514ad1"
+    },
+    "types-react.json": {
+      "url": "https://registry.npmjs.org/@types/react/latest",
+      "sha256": "eec8e8dd1f72955d2fa12e256cd5ab96d476342594cd2034398679a76cfdcac8"
+    },
+    "types-react-dom.json": {
+      "url": "https://registry.npmjs.org/@types/react-dom/latest",
+      "sha256": "4d8ed45d8ca1673b9e27017726cc0f97f65a177cb1499efd9d09f484d4e81f5c"
+    },
+    "react-router.json": {
+      "url": "https://registry.npmjs.org/react-router/latest",
+      "sha256": "108564184695dfa799ea255f26825ae7922e733f7872d9ef2f92793e878e2791"
+    },
+    "npm-selected.json": {
+      "url": "https://registry.npmjs.org/npm/11.19.0",
+      "sha256": "273001988fcaf184d7c3240940a2f8d0a04f7444e84498d100a48727abb71456"
+    },
+    "types-node.json": {
+      "url": "https://registry.npmjs.org/@types/node",
+      "sha256": "0d27cdc1974713804bf6454e0c49ecfa549b24d44d117a351cf6181999990896"
+    }
+  }
+}

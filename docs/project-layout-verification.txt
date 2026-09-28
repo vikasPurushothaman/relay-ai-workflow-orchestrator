@@ -1,0 +1,89 @@
+Task 2.3 — project layout/configuration examples — 2026-09-25
+Documentation/configuration checks only. No application startup or dotenv execution.
+Git ignore checks initialize only an automatically removed temporary repository.
+
+$ python3 scripts/check_project_layout.py
+PASS: 4 directories; architecture keys, blank secrets, mock URLs and 9 recovery defaults
+PASS: 5 invalid template mutations rejected
+PASS: 21 ignored and 19 retained paths via git check-ignore
+PASS: setup links and implementation boundary
+exit=0
+
+$ python3 scripts/check_architecture.py
+PASS: links, R/V/task references, seven handlers, eight API owners, configuration and boundaries
+PASS: rejects missing handler
+PASS: rejects broken link
+PASS: rejects unknown task
+PASS: rejects missing route
+PASS: rejects missing config consumer
+6 checks passed. No runtime tests run.
+exit=0
+
+$ python3 scripts/check_recovery.py
+PASS: seven atomic boundaries, ten recovery cases, twelve future tests, SQL fences, schema/indexes and links
+PASS: nine configuration defaults, lease headroom, two backoff delays and maximum four AI attempts agree
+PASS: rejects missing generation fence
+PASS: rejects missing attempt fence
+PASS: rejects missing cancel rule
+PASS: rejects missing atomic boundary
+PASS: rejects missing queue index
+PASS: rejects unsafe lease
+PASS: rejects broken link
+PASS: rejects unknown task
+PASS: rejects missing durable retry intent
+11 checks passed. No MySQL, concurrency or crash-drill tests run.
+exit=0
+
+$ python3 scripts/check_versions.py
+PASS: 19 source snapshots match provenance
+PASS: pins, metadata, engines/peers, BOM, image architectures, source compatibility and links
+PASS: 4 invalid document mutations rejected
+PASS: 4 engine/peer boundary cases
+10 checks passed (source integrity, baseline, 4 mutations, 4 boundaries).
+exit=0
+
+$ python3 scripts/check_capstone_review.py
+PASS: 16 pinned source files match manifest
+PASS: commit recorded
+PASS: local review links resolve
+PASS: every pack source referenced
+PASS: catalog counts match review
+PASS: fixture counts match review
+PASS: all seed and payload IDs covered
+PASS: all node types covered
+PASS: injection graph ambiguity documented
+PASS: supplied mock emits non-JSON prose
+PASS: empty-ledger false assurance reproduced offline
+PASS: checklist and next item agree
+PASS: API implementation status remains honest
+PASS: local-only publication rule preserved
+PASS: scope corrections and cancellation tracked
+PASS: runtime verification explicitly outstanding
+16 checks passed.
+exit=0
+
+$ python3 docs/source-review/pack/scripts/validate_pack.py
+Pack OK:
+  7 node types, 3 trigger types
+  4 seed workflows, 8 sample payloads
+  15 NL eval cases (3 traps)
+exit=0
+PASS: 16 pinned source files match manifest
+PASS: commit recorded
+PASS: local review links resolve
+PASS: every pack source referenced
+PASS: catalog counts match review
+PASS: fixture counts match review
+PASS: all seed and payload IDs covered
+PASS: all node types covered
+PASS: injection graph ambiguity documented
+PASS: supplied mock emits non-JSON prose
+PASS: empty-ledger false assurance reproduced offline
+PASS: checklist and next item agree
+PASS: API implementation status remains honest
+PASS: local-only publication rule preserved
+PASS: scope corrections and cancellation tracked
+PASS: runtime verification explicitly outstanding
+16 checks passed.
+
+After roadmap update: python3 scripts/check_capstone_review.py — exit 0, 16 checks above. Python assertions confirmed first unfinished/next item 2.4 and no project .git directory. PASS.

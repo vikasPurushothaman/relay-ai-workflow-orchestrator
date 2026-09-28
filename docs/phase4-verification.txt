@@ -1,0 +1,69 @@
+Phase4 tasks4.1–4.14 — complete,2026-09-28
+
+Scope: Java21/Spring Boot/JPA/MySQL/Gradle. No new dependencies or schema migration.
+Production acceptance uses JPA; engine ownership and outcomes use JdbcTemplate under
+Spring transactions with run -> job -> step -> attempt locks and guarded final updates.
+No project publication, no ordinary database resets, no real AI credentials needed.
+
+Executed commands from backend:
+./gradlew --gradle-user-home .gradle/user-home --no-daemon --offline test bootJar
+Initial failure: existing database-free context tests needed mocks for new engine/store
+and acceptance dependencies. Added test-only JDBC/transaction/run/queue mocks; rerun PASS.
+198 unit tests passed including new policy/templates/conditions/delay/destination/transport.
+
+./gradlew --gradle-user-home .gradle/user-home --no-daemon --offline testcontainersTest --tests '*EngineMySqlTest'
+Initial4-case run:3 passed; rollback fixture CREATE TRIGGER failed on application user's
+lack of SUPER under binary logging. Moved only failure-injection DDL to disposable MySQL
+root connection; application account privileges and production configuration unchanged.
+
+./gradlew --gradle-user-home .gradle/user-home --no-daemon --offline test testcontainersTest --tests '*EngineMySqlTest' --tests '*CrashRecoveryMySqlTest'
+PASS:198 unit tests;5 integration cases. Packaged worker killed after actual mock effect
+but before response persistence; replacement replayed same key/request, first attempt
+uncertain, second succeeded,1 logical step, ledger1 original effect +1 replay.
+
+./gradlew --gradle-user-home .gradle/user-home --no-daemon --offline test testcontainersTest
+PASS in1m35s:198 unit tests and14 MySQL integration cases;0 failures/errors/skips.
+Integration breakdown: EngineMySqlTest8, CrashRecoveryMySqlTest1, plus previous migration,
+persistence, workflow CRUD, publication and seed suites1 each. bootJar is an integration
+task dependency and was built in this run.
+
+./gradlew --gradle-user-home .gradle/user-home --no-daemon --offline testcontainersTest --tests '*EngineMySqlTest' --tests '*CrashRecoveryMySqlTest'
+Final targeted rerun PASS in38s:9 cases,0 failures/errors/skips. Added unknown workflow,
+media/oversize/draft/type/secret-rotation HTTP checks and real refund/replacement calls.
+The previous full report was inspected before this filtered rerun; current integration
+XML contains the9 selected cases. Unit XML retains198 passed tests.
+Two accidental Gradle invocations from repository root failed because launcher lives in
+backend; one root wrapper invocation failed sandbox access to ~/.gradle. Correct backend
+working directory and approved Gradle execution used for the actual runs above.
+
+Added coverage after first successful targeted run: latest prior loop output, different
+loop effect keys; crash before initial/retry preparation; Retry-After persisted due time;
+invalid stored policy cannot starve other work; atomic outcome rollback; tiny-negative
+delay rejection; policy arithmetic overflow; bounded decimal template expansion; exact
+real refund/replacement adapter calls with explicitly seeded earlier approval evidence.
+
+Document consistency commands (repository root), all13 PASS exit0:
+python3 scripts/check_architecture.py
+python3 scripts/check_backend_scaffold.py
+python3 scripts/check_capstone_review.py
+python3 scripts/check_console.py
+python3 scripts/check_data_model.py
+python3 scripts/check_frontend_scaffold.py
+python3 scripts/check_mvp.py
+python3 scripts/check_project_layout.py
+python3 scripts/check_recovery.py
+python3 scripts/check_requirements.py
+python3 scripts/check_state_transitions.py
+python3 scripts/check_versions.py
+python3 scripts/check_workflow_semantics.py
+Four checkers' expected API status text was updated with the new trigger routes; assertions
+were retained. Final recheck after completion records and resource cleanup recorded below.
+
+Final completion recheck: all13 commands above passed again after roadmap completion.
+XML totals confirmed: unit198/0 failures/0 errors/0 skipped; targeted integration9/0/0/0.
+Cleanup command:
+docker ps -a --filter label=org.testcontainers=true --format '{{.ID}} {{.Image}} {{.Status}}'
+PASS exit0, empty output. No owned Testcontainers containers remain. Crash test finally
+blocks stop and await all owned worker/mock processes and close proxy/executors; these
+cleanup assertions passed. No ordinary database, user service or remote repository altered.
+Phase4 exit verified. Next task5.1: durable pending approvals and pause behavior.

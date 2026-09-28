@@ -1,0 +1,94 @@
+Task 1.6 document verification — 2026-09-25
+No application/database tests run. Final checks include completed-roadmap consistency.
+Initial python3 scripts/check_state_transitions.py: exit 1 after primary validation and seven negative mutations passed; schema-drift mutation raised AssertionError: Undetected schema drift. The checker matched explanatory prose as well as enum values. Fixed to compare the enum list before the semicolon exactly. Subsequent run passed all 9 checks. Existing five checkers passed on first run.
+Shell startup prints missing Java runtime; Python checks unaffected. Resolve Java in task 2.1.
+
+$ python3 scripts/check_state_transitions.py
+PASS: five state sets, transition guards/membership/terminal absorption, schema, links and 12 scenarios
+PASS: rejects terminal reopening
+PASS: rejects unknown state
+PASS: rejects missing exhaustion event
+PASS: rejects missing cancellation event
+PASS: rejects missing recovery event
+PASS: rejects broken source link
+PASS: rejects unknown test owner
+PASS: rejects schema status drift
+9 checks passed. No runtime tests run.
+Exit code: 0
+
+$ python3 scripts/check_data_model.py
+PASS: six tables, required fields, links, fixed statuses, constraints/indexes and future test references
+PASS: rejects missing snapshot
+PASS: rejects missing key uniqueness
+PASS: rejects missing lease index
+PASS: rejects broken source link
+PASS: rejects wrong run status
+PASS: rejects missing same-step approval uniqueness
+PASS: rejects unknown test owner
+8 checks passed. No runtime tests run.
+Exit code: 0
+
+$ python3 scripts/check_architecture.py
+PASS: links, R/V/task references, seven handlers, eight API owners, configuration and boundaries
+PASS: rejects missing handler
+PASS: rejects broken link
+PASS: rejects unknown task
+PASS: rejects missing route
+PASS: rejects missing config consumer
+6 checks passed. No runtime tests run.
+Exit code: 0
+
+$ python3 scripts/check_requirements.py
+PASS: requirements matrix, source links, roadmap tasks, verification cases, contracts, fixtures and scope
+PASS: rejects missing fixed route
+PASS: rejects invalid task reference
+PASS: rejects missing node
+PASS: rejects wrong parameter required flag
+PASS: rejects wrong output shape
+PASS: rejects missing payload
+PASS: rejects missing seed
+PASS: rejects broken link
+PASS: rejects lost ambiguity
+PASS: rejects lost status
+PASS: rejects missing requirement
+12 checks passed (1 document validation + 11 negative mutations). No application tests run.
+Exit code: 0
+
+$ python3 scripts/check_mvp.py
+PASS: all R/V references, local links, seven nodes, fixtures and scope boundaries
+PASS: rejects omitted requirement
+PASS: rejects unknown verification case
+PASS: rejects broken source link
+PASS: rejects missing node
+PASS: rejects lost ambiguity
+6 checks passed: document consistency plus 5 invalid-copy cases. No runtime verification.
+Exit code: 0
+
+$ python3 scripts/check_capstone_review.py
+PASS: 16 pinned source files match manifest
+PASS: commit recorded
+PASS: local review links resolve
+PASS: every pack source referenced
+PASS: catalog counts match review
+PASS: fixture counts match review
+PASS: all seed and payload IDs covered
+PASS: all node types covered
+PASS: injection graph ambiguity documented
+PASS: supplied mock emits non-JSON prose
+PASS: empty-ledger false assurance reproduced offline
+PASS: checklist and next item agree
+PASS: API implementation status remains honest
+PASS: local-only publication rule preserved
+PASS: scope corrections and cancellation tracked
+PASS: runtime verification explicitly outstanding
+16 checks passed.
+Exit code: 0
+
+Manual design/source checks (not runtime tests):
+S01–S02: Acceptance creates snapshot/job atomically; success/cap/failure never reopen terminals.
+S03–S05: Delay deadline and retry/repair budgets survive restart; no invalid AI output enters step context.
+S06–S08: Approve-final succeeds, rejection cancels with human output, administrative close has no decider. Both commit orders of cancellation/start/completion/decision examined; rollback grants no precedence.
+S09–S10: Before-dispatch/post-effect/pre-commit crashes remain uncertain; committed completion is not replayed; pending cancellation suppresses recovery resend.
+S11–S12: Request auth/input/missing-resource errors cause no transition; gate failure is a runtime error. Trace timing distinguishes terminal logical step from unknown remote attempt finish.
+Compared against PDF extracted brief, API core flows 2–5 and engine behavior, pack DATA_MODEL and catalog/guide requirements from previous review. Six fixed run states preserved; no new product requirement or PDF/pack conflict. D01 remains open.
+Data model reconciled with chosen internal states, wait_reason, closure and timestamp rules; architecture/API pointers explicitly design-only. No remote operations.

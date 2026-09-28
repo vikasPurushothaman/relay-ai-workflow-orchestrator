@@ -1,0 +1,11 @@
+{
+  "source": "/Users/user/Downloads/G9I1BMX8E2C99J1M.pdf",
+  "sha256": "32c2fff531db109f9aa05c0cd2bbb6c479e63ce19c28de041f59c42160aeb216",
+  "pages": 4,
+  "links": [
+    {
+      "page": 4,
+      "uri": "https://github.com/airtribe-projects/relay-capstone"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+Task 2.5 — API/worker launch configuration — 2026-09-25
+Scope: bootstrap/configuration, migration ownership, non-web worker context, and existing scaffold HTTP behavior. No real MySQL/schema/queue execution verified.
+
+Implementation references: Spring Boot 4.1.1 cached configuration metadata confirms spring.main.keep-alive, spring.flyway.jdbc-properties, spring.flyway.ignore-migration-patterns and spring.transaction.default-timeout types. Official Boot EnvironmentPostProcessor documentation specifies META-INF/spring.factories registration. Flyway migration API uses validate/info for worker and migrate for API.
+https://docs.spring.io/spring-boot/how-to/application.html
+https://javadoc.io/static/org.flywaydb/flyway-core/12.0.3/org/flywaydb/core/api/MigrationInfoService.html
+
+Initial command (backend): ./gradlew --gradle-user-home .gradle/user-home --no-daemon --offline test bootJar
+Result: exit 1, 77 tests, 1 failed. Worker context fixture disabled the datasource but lacked the required db health contributor. Added test-only OUT_OF_SERVICE contributor; production health validation unchanged.
+Second identical command: exit 0, BUILD SUCCESSFUL in 9s. All 77 tests passed. Added one subsequent test for actual Spring property binding, including empty ignore-migration-patterns (future schema versions not ignored) and driver timeout properties.
+
+Final build command (backend): ./gradlew --gradle-user-home .gradle/user-home --no-daemon --offline test bootJar
+Result: exit 0, BUILD SUCCESSFUL in 8s; tests executed, bootJar UP-TO-DATE.
+JUnit XML: HealthEndpointsTest 23; LaunchConfigurationTest 48; DatabaseStartupConfigurationTest 6; WorkerContextTest 1. Total 78, zero failures/errors/skips.
+
+Packaged command (root): python3 scripts/check_backend_smoke.py
+Result: exit 0. Scaffold liveness 200 UP, readiness/aggregate 503 OUT_OF_SERVICE, actuator/env empty 401. Process stopped. Missing mode, invalid mode, mode+scaffold, worker missing DB URL and credential-bearing URL all rejected before listener startup; sentinel credential absent from output.
+
+Document consistency commands (root), each exit 0:
+python3 scripts/check_architecture.py — 6 checks passed.
+python3 scripts/check_backend_scaffold.py — wrapper, dependency locks, 23 HTTP tests, jar and API/setup links passed.
+python3 scripts/check_capstone_review.py — 16 checks passed.
+python3 scripts/check_console.py — 9 checks passed.
+python3 scripts/check_data_model.py — 8 checks passed.
+python3 scripts/check_mvp.py — 6 checks passed.
+python3 scripts/check_project_layout.py — layout/defaults, 5 negative mutations, 21 ignored and 19 retained paths passed.
+python3 scripts/check_recovery.py — 11 checks passed.
+python3 scripts/check_requirements.py — 12 checks passed.
+python3 scripts/check_state_transitions.py — 9 checks passed.
+python3 scripts/check_versions.py — 10 checks passed.
+python3 scripts/check_workflow_semantics.py — 9 checks passed.
+
+Verification boundary: tests use mock Flyway and test-only datasource exclusions for worker context; these prove bootstrap wiring and ownership, not MySQL compatibility or real migration behavior. MySQL Compose is 2.6, component startup 2.9, domain migrations 3.1, DB locking/rollback 3.10. No queue execution or real DB readiness is claimed. No publication performed.

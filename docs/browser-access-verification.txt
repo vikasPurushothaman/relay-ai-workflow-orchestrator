@@ -1,0 +1,43 @@
+Task3.4 browser access verification — 2026-09-26
+
+Backend cwd: ./gradlew --gradle-user-home .gradle/user-home --no-daemon --offline test bootJar
+119 tests, zero failures/errors/skips, BUILD SUCCESSFUL; executable jar built.
+Covers explicit origin parsing, unauthenticated permitted preflight, origin/method/header rejection,
+readable allowed-origin401/403, existing authentication/concurrency and scaffold contracts.
+
+Frontend cwd: source ~/.nvm/nvm.sh && nvm use && npm test && npm run build && npm run test:browser
+Node24.21.0/npm11.19.0; exit0;47 native transport/proxy/session tests passed;
+strict TypeScript and Vite production build passed;12 Chromium UI tests passed.
+Success uses contract-compatible workflow-list doubles, not a live implemented list endpoint.
+401/404 feedback, token clearing/storage/URL absence, Enter/disconnect/focus/reload, malformed lists,
+late responses/stale401, aborts, error distinctions and no mutation retry covered.
+Desktop1280px and mobile320px screenshots inspected: readable form/navigation, no horizontal overflow.
+
+Root: python3 scripts/check_component_startup.py --browser
+Exit0. Real Chromium reads allowed-origin401 and exposed WWW-Authenticate; bearer fetch preflights
+and reads authenticated404 from packaged API; unlisted browser origin fails with TypeError.
+Real disposable MySQL/API/worker checks also passed: migration execution/idempotency,
+empty/pending/checksum/future schema rejection, wrong credentials rejection, worker withoutHTTP,
+DB outage readiness503/liveness200 and recovery200. Owned project relay-integration-403fa91cb1
+and owned Java/browser/server processes cleaned up. Existing user services/database unchanged.
+
+All13 consistency commands exit0 after replacing a setup anchor link unsupported by the checker:
+python3 scripts/check_architecture.py
+python3 scripts/check_backend_scaffold.py
+python3 scripts/check_capstone_review.py
+python3 scripts/check_console.py
+python3 scripts/check_data_model.py
+python3 scripts/check_frontend_scaffold.py
+python3 scripts/check_mvp.py
+python3 scripts/check_project_layout.py
+python3 scripts/check_recovery.py
+python3 scripts/check_requirements.py
+python3 scripts/check_state_transitions.py
+python3 scripts/check_versions.py
+python3 scripts/check_workflow_semantics.py
+Initial consistency pass stopped at check_console's link assertion; final pass all13 succeeded.
+Final backend rerun including explicit allowed-origin403 assertion: BUILD SUCCESSFUL in9s.
+
+Limits: live successful Connect awaits GET/workflows in3.6. Screens are placeholders;
+full data views/cache/polling and mutation integration remain6.3 onward. No new domain routes,
+worker execution, individual identity, publication or D01 resolution is claimed.

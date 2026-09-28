@@ -1,0 +1,119 @@
+Task 2.2 — 2026-09-25
+Document and metadata verification only. No dependency resolution, installation, wrapper run, frontend build or MySQL integration test performed.
+
+Source acquisitions: each successful command below exited 0. Registry types-node.json is the selected version object extracted from the full response via Python.
+curl -fLsS --max-time 30 'https://services.gradle.org/versions/current' -o docs/version-sources/gradle.json
+curl -fLsS --max-time 30 'https://services.gradle.org/distributions/gradle-9.8.0-bin.zip.sha256' -o docs/version-sources/gradle.sha256
+curl -fLsS --max-time 30 'https://nodejs.org/dist/index.json' -o docs/version-sources/node.json
+curl -fLsS --max-time 30 'https://repo.maven.apache.org/maven2/org/springframework/boot/spring-boot-dependencies/4.1.1/spring-boot-dependencies-4.1.1.pom' -o docs/version-sources/boot-bom.pom
+curl -fLsS --max-time 30 'https://repo.maven.apache.org/maven2/com/networknt/json-schema-validator/3.0.6/json-schema-validator-3.0.6.pom' -o docs/version-sources/schema.pom
+curl -fLsS --max-time 30 'https://repo.maven.apache.org/maven2/com/networknt/json-schema-validator/3.0.7/json-schema-validator-3.0.7.pom' -o docs/version-sources/schema-selected.pom
+curl -fLsS --max-time 30 'https://raw.githubusercontent.com/docker-library/official-images/master/library/mysql' -o docs/version-sources/mysql-image.txt
+curl -fLsS --max-time 30 'https://raw.githubusercontent.com/flyway/flyway/flyway-12.4.0/flyway-database/flyway-mysql/src/main/java/org/flywaydb/database/mysql/MySQLDatabase.java' -o docs/version-sources/flyway-mysql.java
+curl -fLsS --max-time 30 'https://registry.npmjs.org/vite/latest' -o docs/version-sources/vite.json
+curl -fLsS --max-time 30 'https://registry.npmjs.org/@vitejs/plugin-react/latest' -o docs/version-sources/vite-react.json
+curl -fLsS --max-time 30 'https://registry.npmjs.org/react/latest' -o docs/version-sources/react.json
+curl -fLsS --max-time 30 'https://registry.npmjs.org/react-dom/latest' -o docs/version-sources/react-dom.json
+curl -fLsS --max-time 30 'https://registry.npmjs.org/typescript/latest' -o docs/version-sources/typescript.json
+curl -fLsS --max-time 30 'https://registry.npmjs.org/npm/latest' -o docs/version-sources/npm.json
+curl -fLsS --max-time 30 'https://registry.npmjs.org/@types/react/latest' -o docs/version-sources/types-react.json
+curl -fLsS --max-time 30 'https://registry.npmjs.org/@types/react-dom/latest' -o docs/version-sources/types-react-dom.json
+curl -fLsS --max-time 30 'https://registry.npmjs.org/react-router/latest' -o docs/version-sources/react-router.json
+curl -fLsS --max-time 30 'https://registry.npmjs.org/npm/11.19.0' -o docs/version-sources/npm-selected.json
+curl -fLsS --max-time 30 https://registry.npmjs.org/@types/node -o /private/tmp/relay-types-node.json
+Python: select greatest stable 24.x version (24.13.6) from versions and serialize to docs/version-sources/types-node.json.
+
+Initial /@types/node/24 lookup returned HTTP 404; registry version entry lookup above succeeded. Flyway raw source initially failed DNS, then the same curl command succeeded with sandbox escalation. No package was installed.
+Web review: primary release/compatibility/support pages are linked next to their claims in docs/SETUP.md.
+Manual review: Boot/Gradle/JDK compatibility, npm/Node pairing, frontend engine/peers, BOM/library selection, MySQL image architectures and SQL capabilities reviewed. Flyway 8.4 acceptance is inferred from versioned source; upstream verified-version list omits it. Validator 3.0.7 considered but not selected because it requests Jackson 3.2.1 versus BOM 3.1.5; selected 3.0.6 requests 3.1.4. MySQL 8.4.12 release notes exist but retrieved official image catalog advertises 8.4.11.
+
+Initial python3 scripts/check_versions.py: failed because the linked evidence file had not yet been created; source integrity passed. Created this file before final checks.
+
+$ python3 scripts/check_versions.py
+PASS: 19 source snapshots match provenance
+PASS: pins, metadata, engines/peers, BOM, image architectures, source compatibility and links
+PASS: 4 invalid document mutations rejected
+PASS: 4 engine/peer boundary cases
+10 checks passed (source integrity, baseline, 4 mutations, 4 boundaries).
+exit=0
+
+$ python3 scripts/check_architecture.py
+PASS: links, R/V/task references, seven handlers, eight API owners, configuration and boundaries
+PASS: rejects missing handler
+PASS: rejects broken link
+PASS: rejects unknown task
+PASS: rejects missing route
+PASS: rejects missing config consumer
+6 checks passed. No runtime tests run.
+exit=0
+
+$ python3 scripts/check_data_model.py
+PASS: six tables, required fields, links, fixed statuses, constraints/indexes and future test references
+PASS: rejects missing snapshot
+PASS: rejects missing key uniqueness
+PASS: rejects missing lease index
+PASS: rejects broken source link
+PASS: rejects wrong run status
+PASS: rejects missing same-step approval uniqueness
+PASS: rejects unknown test owner
+8 checks passed. No runtime tests run.
+exit=0
+
+$ python3 scripts/check_workflow_semantics.py
+PASS: links, sections, seven catalog template flags, ten validation rules, twelve test cases and seed paths
+PASS: four source seeds fit selected structural rules; 31 template references; runaway graph has 12 visits before next admission
+PASS: rejects missing node
+PASS: rejects wrong template flag
+PASS: rejects seed path drift
+PASS: rejects broken source link
+PASS: rejects missing cap rule
+PASS: rejects unknown task
+PASS: rejects lost template boundary
+9 checks passed. No application, schema-validator or template-runtime tests run.
+exit=0
+
+$ python3 scripts/check_capstone_review.py
+PASS: 16 pinned source files match manifest
+PASS: commit recorded
+PASS: local review links resolve
+PASS: every pack source referenced
+PASS: catalog counts match review
+PASS: fixture counts match review
+PASS: all seed and payload IDs covered
+PASS: all node types covered
+PASS: injection graph ambiguity documented
+PASS: supplied mock emits non-JSON prose
+PASS: empty-ledger false assurance reproduced offline
+PASS: checklist and next item agree
+PASS: API implementation status remains honest
+PASS: local-only publication rule preserved
+PASS: scope corrections and cancellation tracked
+PASS: runtime verification explicitly outstanding
+16 checks passed.
+exit=0
+
+$ python3 docs/source-review/pack/scripts/validate_pack.py
+Pack OK:
+  7 node types, 3 trigger types
+  4 seed workflows, 8 sample payloads
+  15 NL eval cases (3 traps)
+exit=0
+PASS: 16 pinned source files match manifest
+PASS: commit recorded
+PASS: local review links resolve
+PASS: every pack source referenced
+PASS: catalog counts match review
+PASS: fixture counts match review
+PASS: all seed and payload IDs covered
+PASS: all node types covered
+PASS: injection graph ambiguity documented
+PASS: supplied mock emits non-JSON prose
+PASS: empty-ledger false assurance reproduced offline
+PASS: checklist and next item agree
+PASS: API implementation status remains honest
+PASS: local-only publication rule preserved
+PASS: scope corrections and cancellation tracked
+PASS: runtime verification explicitly outstanding
+16 checks passed.
+
+Final roadmap update: python3 scripts/check_capstone_review.py re-run after advancing to 2.3 — exit 0 (16 checks above). Python assertions: first unfinished item and next item are 2.3, 2.2 completion recorded, changed document/checker references exist — PASS.

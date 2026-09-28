@@ -1,0 +1,24 @@
+Task3.3 authentication verification — 2026-09-25
+
+Backend: ./gradlew --gradle-user-home .gradle/user-home --no-daemon --offline test bootJar
+Final exit0, BUILD SUCCESSFUL in9s;107 tests, zero failures/errors/skips; jar built.
+Real random-port API test uses test-only datasource exclusions/health contributor; verifies valid management namespace requests and demo-operator evidence, invalid/basic/combined/duplicate/query/cookie credentials401, arbitrary health authorization200, hooks/other namespaces denied, authenticated missing route404, safe403 and12 alternating concurrent authenticated/anonymous requests. Existing23 scaffold HTTP tests remain unchanged and pass.
+Unit checks: API startup rejects5 invalid token syntaxes without echo; anonymous/forged principal rejected, actor/time stamped from context, invalid timestamps and replacing decided/closed evidence rejected. API path test sends forged X-Decided-By but records only demo-operator.
+
+Root: python3 scripts/check_persistence.py — exit0, mysqlTest BUILD SUCCESSFUL in8s,1 integration test passed. Authenticated decision stores demo-operator and exact timestamp through JPA to realMySQL. Existing six-table/UTC/optimistic/FK/rollback checks also passed. Owned project relay-jpa-db32371ba1 removed; ordinary relay DB untouched.
+All13 consistency commands exit0:
+python3 scripts/check_architecture.py
+python3 scripts/check_backend_scaffold.py
+python3 scripts/check_capstone_review.py
+python3 scripts/check_console.py
+python3 scripts/check_data_model.py
+python3 scripts/check_frontend_scaffold.py
+python3 scripts/check_mvp.py
+python3 scripts/check_project_layout.py
+python3 scripts/check_recovery.py
+python3 scripts/check_requirements.py
+python3 scripts/check_state_transitions.py
+python3 scripts/check_versions.py
+python3 scripts/check_workflow_semantics.py
+
+No production decision endpoint, approval/run/job lifecycle or individual identity implemented. Later decision service must lock/check and commit all related changes; method guard is not concurrency proof. No user service restart or userDB mutation. No publication.

@@ -1,0 +1,87 @@
+$ python3 scripts/check_toolchain.py
+java: /opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home/bin/java
+javac: /opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home/bin/javac
+gradle: NOT FOUND
+node: /Users/user/.nvm/versions/node/v24.16.0/bin/node
+npm: /Users/user/.nvm/versions/node/v24.16.0/bin/npm
+pnpm: /Users/user/.nvm/versions/node/v24.16.0/bin/pnpm
+docker: /usr/local/bin/docker
+python3: /opt/homebrew/bin/python3
+$ java -version
+openjdk version "21.0.12.1" 2026-08-18
+OpenJDK Runtime Environment Homebrew (build 21.0.12.1)
+OpenJDK 64-Bit Server VM Homebrew (build 21.0.12.1, mixed mode, sharing)
+exit=0
+$ javac -version
+javac 21.0.12.1
+exit=0
+$ node --version
+v24.16.0
+exit=0
+$ npm --version
+11.13.0
+exit=0
+$ python3 --version
+Python 3.14.5
+exit=0
+$ gradle -version
+UNAVAILABLE: [Errno 2] No such file or directory: 'gradle'
+$ pnpm --version
+10.0.0
+exit=0
+$ docker --version
+Docker version 29.4.3, build 055a478
+exit=0
+$ docker compose version
+Docker Compose version v5.1.4
+exit=0
+$ docker info --format {{.ServerVersion}}
+
+permission denied while trying to connect to the docker API at unix:///Users/user/.docker/run/docker.sock
+exit=1
+$ javac /var/folders/mt/c6_72rp14zn079l1ns1mnsmm0000gn/T/relay-java-srazzt4a/HelloRelay.java
+exit=0
+$ java -cp /var/folders/mt/c6_72rp14zn079l1ns1mnsmm0000gn/T/relay-java-srazzt4a HelloRelay
+Relay Java OK
+exit=0
+$ javac /var/folders/mt/c6_72rp14zn079l1ns1mnsmm0000gn/T/relay-java-srazzt4a/HelloRelay.java
+/var/folders/mt/c6_72rp14zn079l1ns1mnsmm0000gn/T/relay-java-srazzt4a/HelloRelay.java:1: error: ';' expected
+public class HelloRelay { invalid java }
+                                      ^
+1 error
+exit=1
+PASS: valid Java compiles/runs; invalid source rejected
+PASS: core toolchain checks; review optional/unavailable results above
+exit=0
+
+$ python3 scripts/check_architecture.py
+PASS: links, R/V/task references, seven handlers, eight API owners, configuration and boundaries
+PASS: rejects missing handler
+PASS: rejects broken link
+PASS: rejects unknown task
+PASS: rejects missing route
+PASS: rejects missing config consumer
+6 checks passed. No runtime tests run.
+exit=0
+
+$ python3 scripts/check_capstone_review.py
+PASS: 16 pinned source files match manifest
+PASS: commit recorded
+PASS: local review links resolve
+PASS: every pack source referenced
+PASS: catalog counts match review
+PASS: fixture counts match review
+PASS: all seed and payload IDs covered
+PASS: all node types covered
+PASS: injection graph ambiguity documented
+PASS: supplied mock emits non-JSON prose
+PASS: empty-ledger false assurance reproduced offline
+PASS: checklist and next item agree
+PASS: API implementation status remains honest
+PASS: local-only publication rule preserved
+PASS: scope corrections and cancellation tracked
+PASS: runtime verification explicitly outstanding
+16 checks passed.
+exit=0
+
+PASS: setup links resolve; architecture, roadmap and diagnostic use Gradle; next item remains 2.2.

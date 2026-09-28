@@ -1,0 +1,45 @@
+Task 2.6 MySQL Compose verification — 2026-09-25
+
+Docker engine: 29.4.3; Compose: 5.1.4. Initial sandbox socket access denied; approved Docker access succeeded.
+docker buildx imagetools inspect mysql:8.4.11 — exit 0; digest and platforms saved in mysql-image-provenance.json.
+docker compose pull mysql — exit 0, pinned image downloaded.
+
+python3 scripts/check_mysql_compose.py — exit 0.
+PASS: pinned image, loopback port, named volume, file secrets, authenticated health; missing secrets rejected.
+PASS: secret creation is private, distinct, repeatable and rejects empty existing file.
+PASS: healthy MySQL 8.4.11, relay schema access, wrong password and system-table access rejected.
+PASS: repeated up and down/up retain data in the named volume.
+PASS: explicit disposable-volume reset removes data and reinitializes schema/account.
+PASS: owned disposable project relay-test-7c0824f7f5e0 removed, including its volume/network.
+
+Normal local service:
+docker ps -a --filter label=com.docker.compose.project=relay --format '{{.Names}} {{.Status}}'
+docker volume ls --filter name=relay_mysql_data --format '{{.Name}}'
+Both exit 0 with no pre-existing Relay resources.
+python3 scripts/init_mysql_secrets.py — exit 0; private local files created, no credentials printed.
+docker compose config --quiet — exit 0.
+docker compose up -d --wait --wait-timeout 180 — exit 0; relay-mysql-1 Healthy.
+docker compose ps — exit 0; healthy, 127.0.0.1:3306->3306/tcp.
+Authenticated SQL command:
+docker compose exec -T mysql sh -c 'MYSQL_PWD="$(cat /run/secrets/mysql_password)" exec mysql --protocol=TCP -h 127.0.0.1 -u relay -D relay -N -B --execute="SELECT VERSION(), DATABASE();"'
+Result: exit 0, 8.4.11 and relay.
+
+Document/source consistency commands (root): all exit 0.
+python3 scripts/check_architecture.py
+python3 scripts/check_backend_scaffold.py
+python3 scripts/check_capstone_review.py
+python3 scripts/check_console.py
+python3 scripts/check_data_model.py
+python3 scripts/check_mvp.py
+python3 scripts/check_project_layout.py
+python3 scripts/check_recovery.py
+python3 scripts/check_requirements.py
+python3 scripts/check_state_transitions.py
+python3 scripts/check_versions.py
+python3 scripts/check_workflow_semantics.py
+
+No Java behavior changed; existing built HTTP results checked, Gradle tests not rerun in this task.
+No domain tables/migrations or Java/MySQL integration tested. Those remain 2.9/3.1/3.10.
+Normal relay-mysql-1 is intentionally left running; scaffold server was not touched.
+Only owned disposable test data was reset; no existing user data deleted. No remote publication.
+

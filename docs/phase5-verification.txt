@@ -1,0 +1,213 @@
+Phase5 verification — 2026-09-28 — COMPLETE with user-selected OpenRouter live verification; chronological earlier failures retained
+Scope: tasks5.1–5.11, Java21/Gradle, disposable Testcontainers MySQL8.4.11.
+No user database modified; no publication.
+
+Executed commands (Gradle cwd backend):
+./gradlew --gradle-user-home .gradle/user-home --no-daemon --offline test bootJar
+  PASS initial compile/unit build (12s).
+./gradlew --gradle-user-home .gradle/user-home --no-daemon --offline test testcontainersTest --tests '*HumanAiMySqlTest'
+  PASS initial4 MySQL tests (26s), then expanded7 cases (31s).
+  Later10-case run:9 pass/1 fail; recovery test incorrectly expected dispatch
+  before the persisted backoff intent was reclaimed. Corrected test to perform
+  recovery scheduling, advance due time and reclaim.
+./gradlew --gradle-user-home .gradle/user-home --no-daemon --offline test bootJar testcontainersTest
+  First full Phase5 run:25 integration cases,24 pass/1 fail (1m50s).
+  Slow mock exposed wrapped JDK HttpTimeoutException reported as transport_failure.
+  Both remain retryable, but production classification corrected to http_timeout.
+  Retest in progress; no completion claimed from this failed run.
+python3 scripts/test_ai_configuration.py
+  PASS3 tests: hidden fake key,0600/exclusive write, roundtrip, invalid inputs and fields.
+
+Initial document checks detected missing evidence file and anchor-unaware link checks;
+links corrected and this evidence file created. Final consistency checks pending.
+Live real-provider verification pending private local configuration from user.
+No live-provider call has been executed or represented as passing.
+
+Full rerun after timeout fix:
+./gradlew --gradle-user-home .gradle/user-home --no-daemon --offline test bootJar testcontainersTest
+  PASS (1m55s):203 unit tests +25 MySQL tests,0 failures/errors/skips.
+All13 document checks PASS after link/evidence corrections.
+Final expanded13-case human/AI target run:12 pass/1 fail because test used
+an invalid template prefix. Corrected fixture to canonical nodes.a.output.ok;
+production parser correctly rejected the invalid fixture. Retest pending.
+
+Initial live runner exited1 before sending: backend/.env.ai was absent.
+User subsequently configured backend/.env.example. Moved local key/model into
+backend/.env.ai (0600, ignored), restored blank example placeholders, and set
+private mode openai. No key contents printed. Live execution now underway.
+
+Final targeted worker/gate run:
+./gradlew --gradle-user-home .gradle/user-home --no-daemon --offline testcontainersTest --tests '*HumanAiMySqlTest'
+  PASS13 cases (31s), including actual worker AI repair -> approval wait -> human resume.
+
+Real provider (user authorized local configuration and live verification):
+python3 scripts/verify_live_ai.py
+  Executed, FAILED1 live test: safe error http_429. No model output obtained.
+  Read-only GET /v1/models using same private credentials returned200; configured
+  model gpt-5.6-terra is listed. Synthetic Responses diagnostic returned429,
+  error type insufficient_quota, code credit_balance_exhausted.
+  Key authenticates and model ID is available; account API credit is the blocker.
+  No successful live inference is claimed. Task5.9 remains incomplete until credit
+  is available and the explicit live probe succeeds. No automated repeated billing
+  attempts, account changes or purchases performed.
+
+Final additional boundary checks underway: summary300/301 characters, strict duplicate/
+trailing/fenced JSON rejection, same and future sequence approval evidence, and exact
+coverage of both supplied injection payloads. Full final results to follow.
+
+FINAL REGRESSION
+./gradlew --gradle-user-home .gradle/user-home --no-daemon --offline test bootJar testcontainersTest
+  PASS BUILD SUCCESSFUL in1m39s. XML totals:204 unit tests,27 real MySQL
+  integration tests,0 failures,0 errors,0 skipped in both tasks.
+ 13 HumanAiMySqlTest cases plus14 existing MySQL cases. Packaged jar built.
+  Includes worker provider dispatch/repair, real supplied mock failures/timeouts,
+  authenticated APIs, transaction rollback/races, cancellation, restart/recovery,
+  schema boundaries, injection branches, gating every attempt and usage overflow.
+python3 docs/source-review/pack/scripts/validate_pack.py
+  PASS:7 node types,3 trigger types,4 seeds,8 payloads,15 NL cases/3 traps.
+python3 scripts/check_project_layout.py
+  PASS:22 ignored (including backend/.env.ai),19 retained,5 invalid example mutations.
+
+Changes: backend AI provider interface/adapter; EngineStore, WorkerLifecycle,
+HttpTransport, OutputSchemaValidator; HumanControlController/Service; provider and
+human/AI integration tests; Gradle opt-in live task; private config/live helper scripts
+and helper tests; API_DOCUMENTATION, PROJECT_PLAN, setup/design/evidence and consistency
+checkers. No migration/schema change, frontend feature expansion or published artifact.
+
+Task5.1–5.8 and5.10–5.11 complete.5.9 remains incomplete only for successful real inference.
+Expected live success: one schema-valid synthetic JSON response with token usage, at most
+one corrective request. Observed:429 credit_balance_exhausted. Model/key confirmed,
+no fabricated live success. To finish after credit is available:
+  python3 scripts/verify_live_ai.py
+Keep only one running worker; restart your API/worker to load the rebuilt application.
+Approval/run-data console work and run-read/trace endpoints remain Phase6.
+
+FINAL DOCUMENT CONSISTENCY (after roadmap completion updates)
+python3 scripts/check_architecture.py -> 0 PASS
+python3 scripts/check_backend_scaffold.py -> 0 PASS
+python3 scripts/check_capstone_review.py -> 0 PASS
+python3 scripts/check_console.py -> 0 PASS
+python3 scripts/check_data_model.py -> 0 PASS
+python3 scripts/check_frontend_scaffold.py -> 0 PASS
+python3 scripts/check_mvp.py -> 0 PASS
+python3 scripts/check_project_layout.py -> 0 PASS
+python3 scripts/check_recovery.py -> 0 PASS
+python3 scripts/check_requirements.py -> 0 PASS
+python3 scripts/check_state_transitions.py -> 0 PASS
+python3 scripts/check_versions.py -> 0 PASS
+python3 scripts/check_workflow_semantics.py -> 0 PASS
+docker ps -a --filter label=org.testcontainers=true --format '{{.ID}} {{.Image}} {{.Status}}'
+  PASS exit0, empty: no owned Testcontainers remain. Owned mock processes terminated in test finally blocks.
+
+NEXT-TASK RETRY —2026-09-28
+Read AGENTS.md and PROJECT_PLAN.md; selected first unfinished task5.9.
+Existing test roadmap: private OpenAI key/model, synthetic ok=true JSON request,
+strict schema plus reported input/output usage, at most one corrective invocation.
+python3 scripts/verify_live_ai.py
+  FAILED exit1, Gradle BUILD FAILED in5s.1 live test,1 failure,0 errors/skips.
+  Assertion: Live provider failed: http_429. No successful output/schema validation.
+  Previous safe diagnostic was insufficient_quota / credit_balance_exhausted;
+  this attempt only confirms HTTP429, not a fresh error-body classification.
+No application/API changes; roadmap/evidence updated. Task5.9 remains incomplete.
+Add API credit externally and rerun this same command; expected success is1 passing
+live test with schema-valid JSON and known input/output usage. No key was printed.
+Retry document consistency: all13 PASS (exit0):
+python3 scripts/check_architecture.py -> 0
+python3 scripts/check_backend_scaffold.py -> 0
+python3 scripts/check_capstone_review.py -> 0
+python3 scripts/check_console.py -> 0
+python3 scripts/check_data_model.py -> 0
+python3 scripts/check_frontend_scaffold.py -> 0
+python3 scripts/check_mvp.py -> 0
+python3 scripts/check_project_layout.py -> 0
+python3 scripts/check_recovery.py -> 0
+python3 scripts/check_requirements.py -> 0
+python3 scripts/check_state_transitions.py -> 0
+python3 scripts/check_versions.py -> 0
+python3 scripts/check_workflow_semantics.py -> 0
+
+Repeated next-task request2026-09-28: python3 scripts/verify_live_ai.py exited1; BUILD FAILED in5s. XML:1 test,1 failure,0 errors/skips; Live provider failed: http_429. No application/API change and no successful live output.5.9 remains incomplete; awaiting account credit change or user decision to defer it and proceed with6.1.
+
+TASK5.9 FIX —2026-09-28
+Source reviewed: https://developers.openai.com/api/docs/guides/error-codes
+Bug: billing429 was classified as temporary http_429, hiding the permanent cause and
+scheduling futile retries. Fixed bounded JSON parsing for AI/OpenAI429 only; allowlisted
+credit/spend/quota codes become fixed ai_* codes with retryable=false. Unknown/malformed/
+temporary429 keeps existing Retry-After/retry policy. Provider body/message never escapes.
+Live test and Gradle reporting now show a safe actionable assertion without a stack dump.
+Files: HttpTransport.java, HttpTransportTest.java, HumanAiMySqlTest.java,
+ProviderLiveAiTest.java, build.gradle, API_DOCUMENTATION.md, docs/SETUP.md, PROJECT_PLAN.md.
+
+Gradle cwd backend:
+./gradlew --gradle-user-home .gradle/user-home --no-daemon --offline test bootJar testcontainersTest --tests '*HumanAiMySqlTest'
+  PASS32s. XML totals205 unit tests and14 targeted real-MySQL tests;
+  zero failures/errors/skips. Includes billing permanent vs rate-limit transient,
+  all5 allowlisted codes, insufficient_quota fallback, unknown/malformed/duplicate JSON,
+  secret-message exclusion, provider isolation and inactive queue/no repair/no retry.
+python3 scripts/verify_live_ai.py
+  Executed once after fix: FAILED6s,1 live test. Now reports exact safe code
+  ai_credit_balance_exhausted. Successful inference still blocked by account balance.
+  No further live retries without account/configuration change. No purchases or billing
+  settings modified. Expected next step: add credit in the API organization associated
+  with the key, then rerun the same live command; require schema-valid output and usage.
+
+Task5.9 error handling corrected, but5.9 remains incomplete because live success is an
+explicit acceptance criterion. Local success does not substitute for live inference.
+Fix document consistency:13 PASS:
+python3 scripts/check_architecture.py -> 0
+python3 scripts/check_backend_scaffold.py -> 0
+python3 scripts/check_capstone_review.py -> 0
+python3 scripts/check_console.py -> 0
+python3 scripts/check_data_model.py -> 0
+python3 scripts/check_frontend_scaffold.py -> 0
+python3 scripts/check_mvp.py -> 0
+python3 scripts/check_project_layout.py -> 0
+python3 scripts/check_recovery.py -> 0
+python3 scripts/check_requirements.py -> 0
+python3 scripts/check_state_transitions.py -> 0
+python3 scripts/check_versions.py -> 0
+python3 scripts/check_workflow_semantics.py -> 0
+
+OPENROUTER AMENDMENT —2026-09-28
+User explicitly authorized OpenRouter for5.9 based on the supplied setup screenshot.
+Private config inspected by mode/model and prefix boolean only: OpenRouter-format key
+was paired with mode=openai and unprefixed gpt-5-mini. Switched to mode=openrouter and
+model=openai/gpt-5-mini, preserving key in place at0600 without displaying/duplicating it.
+Added fixed HTTPS chat endpoint, prefixed-model validation, cross-provider key guard,
+chat usage decoding/refusal/tool rejection, permanent402 payment code, helper/loader/live
+probe support. Direct OpenAI/mock modes remain supported; original seeds/pack unchanged.
+
+Official protocol checked:
+https://openrouter.ai/docs/api/api-reference/chat/create-a-chat-completion
+
+python3 scripts/test_ai_configuration.py
+  PASS4 tests (including OpenRouter private roundtrip and provider/model/key mismatches).
+./gradlew --gradle-user-home .gradle/user-home --no-daemon --offline test bootJar
+  PASS initial OpenRouter build12s.
+python3 scripts/verify_live_ai.py
+  PASS BUILD SUCCESSFUL8s. ProviderLiveAiTest XML:1 test,0 failures/errors/skips.
+  Real OpenRouter / openai/gpt-5-mini returned schema-valid synthetic JSON and non-null
+  prompt/completion usage through the production adapter. No customer payload/key printed.
+  This supersedes prior OpenAI credit-exhaustion blockers for the user-selected5.9 provider.
+Final local regressions/document checks follow below.
+
+OPENROUTER FINAL LOCAL REGRESSION
+./gradlew --gradle-user-home .gradle/user-home --no-daemon --offline test bootJar testcontainersTest --tests '*HumanAiMySqlTest'
+  PASS30s.207 unit tests and14 HumanAiMySqlTest cases,0 failures/errors/skips.
+  Explicit live test (separate task) also passed1 test,0 failures/errors/skips.
+Task5.9 and Phase5 complete. Next6.1. App process restart remains a normal user action;
+no existing worker/API process or user database was changed by verification.
+OpenRouter document consistency:13 PASS:
+python3 scripts/check_architecture.py -> 0
+python3 scripts/check_backend_scaffold.py -> 0
+python3 scripts/check_capstone_review.py -> 0
+python3 scripts/check_console.py -> 0
+python3 scripts/check_data_model.py -> 0
+python3 scripts/check_frontend_scaffold.py -> 0
+python3 scripts/check_mvp.py -> 0
+python3 scripts/check_project_layout.py -> 0
+python3 scripts/check_recovery.py -> 0
+python3 scripts/check_requirements.py -> 0
+python3 scripts/check_state_transitions.py -> 0
+python3 scripts/check_versions.py -> 0
+python3 scripts/check_workflow_semantics.py -> 0
