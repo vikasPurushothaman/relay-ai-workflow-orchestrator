@@ -1,0 +1,35 @@
+Task 8.8 — Final automated test run on the current tree (2026-09-28)
+===================================================================
+
+Why: Phase 8 changed backend code after the 7.7 full run (task 8.6: default
+RELAY_ALLOWED_ORIGINS, WorkerLifecycle fatal exit) and added helper scripts, so
+every automated suite was re-run on the final tree.
+
+Backend (from backend/):
+  ./gradlew --gradle-user-home .gradle/user-home --no-daemon --offline test bootJar testcontainersTest --rerun
+  exit 0, BUILD SUCCESSFUL in 1m 42s
+  test (unit):               231 tests, 0 failures, 0 errors, 0 skipped (21 classes)
+  testcontainersTest (MySQL): 32 tests, 0 failures, 0 errors, 0 skipped (9 classes)
+  Counted from the JUnit XML under build/test-results/.
+  Change since 7.7: 224 -> 231 unit tests (+3 ManagementSecurityTest cases,
+  +1 ManagementCorsTest, +3 WorkerLifecycleTest); real-MySQL count unchanged.
+
+Frontend (from frontend/, Node 24.21.0 via nvm):
+  npm test            exit 0: tests 58, pass 58, fail 0
+  npm run build       exit 0 (tsc --noEmit clean, Vite build); dist references
+                      only the default API origin http://localhost:8080
+  npx playwright test exit 0: 27 passed (mocked API, Chromium)
+
+Script unit tests (from scripts/):
+  python3 -m unittest test_demo test_ai_configuration test_duplication_check test_crash_window_proxy
+  Ran 23 tests, OK  (demo helper 8, AI configuration 4, duplication checker 7, crash-window proxy 4)
+
+Total executed in this run: 371 automated tests, 0 failures
+  (231 + 32 + 58 + 27 + 23).
+
+Not re-run: the live browser suite (playwright.live.config.ts). The frontend
+source is unchanged since 7.7, where it passed 6/6 against a real stack; the
+changed backend behaviour was exercised live through the console in the 8.6 demo
+(approve and reject through the dev proxy, run detail, step-cap view).
+
+Document consistency checks at the end of task 8.8 are recorded in PROJECT_PLAN.md.

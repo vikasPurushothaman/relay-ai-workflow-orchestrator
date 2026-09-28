@@ -1,6 +1,6 @@
 # Relay — Verification Report
 
-Phase 7, 2026-09-28. This report states what was verified, how, with which commands, and what actually happened. Every result below was produced by an executed command. Raw outputs, timings and identifiers are in [phase7-verification.txt](phase7-verification.txt) and [duplication-check-results.txt](duplication-check-results.txt); earlier phases are in the per-phase evidence files linked from [PROJECT_PLAN.md](../PROJECT_PLAN.md). Where something was **not** verified, that is stated in [Known limitations](#known-limitations) or [Not verified or out of scope](#not-verified-or-out-of-scope).
+Phases 7 and 8, 2026-09-28. This report states what was verified, how, with which commands, and what actually happened. Every result below was produced by an executed command. Raw outputs, timings and identifiers are in [phase7-verification.txt](phase7-verification.txt), [duplication-check-results.txt](duplication-check-results.txt) and the Phase 8 files listed in [Delivery verification](#delivery-verification-phase-8); earlier phases are in the per-phase evidence files linked from [PROJECT_PLAN.md](../PROJECT_PLAN.md). Where something was **not** verified, that is stated in [Known limitations](#known-limitations) or [Not verified or out of scope](#not-verified-or-out-of-scope).
 
 ## Summary
 
@@ -15,7 +15,7 @@ Phase 7, 2026-09-28. This report states what was verified, how, with which comma
 | 7.7 | Every automated suite on the current tree | Gradle, npm, Playwright, unittest | 362 tests, 0 failures, 0 skipped |
 | 7.8 | Clean startup and repeatable seeding from an empty database | `compose.yaml` (separate project), packaged jar | 9/9 scenarios pass |
 
-No application code, backend/frontend tests or API routes changed during Phase 7; every failure found was in verification tooling or the test harness.
+No application code, backend/frontend tests or API routes changed during Phase 7; every failure found was in verification tooling or the test harness. Phase 8 found and fixed two product defects; see [Delivery verification](#delivery-verification-phase-8).
 
 ## Environment
 
@@ -123,9 +123,49 @@ Using the real `compose.yaml` under a separate project (`relay-fresh`, port 3307
 | S8 | Worker runs a small expense on the fresh stack (`run_1013011c9b0848d3b2f39613004aabc6`) to succeeded, 1 keyed email |
 | S9 | `compose down` (keeping the volume) then `up`: data, edit and run intact; no duplicate seeds |
 
+## Delivery verification (Phase 8)
+
+Phase 8 ran the documented setup and demo end to end, fixed what they exposed, and re-ran every automated suite. Evidence: [phase8-startup-verification.txt](phase8-startup-verification.txt), [phase8-demo-verification.txt](phase8-demo-verification.txt), [phase8-final-tests.txt](phase8-final-tests.txt).
+
+| Item | What was checked | Actual result |
+| --- | --- | --- |
+| 8.3 | Every README Quick start and Shutdown command, from a fresh copy (no build output, dependencies or secrets) on the default ports | All 10 steps pass after one README fix: step 7 did not export the token in a new terminal and returned 401; fixed and re-run → 202, run failed `max_steps` at 12/12 |
+| 8.6 | Every scene of [DEMO.md](DEMO.md) live, with the console driven in a browser and OpenRouter for the AI scenes | All 8 scenes and both optional drills pass after two product fixes (below). `pay_001` → `complaint` → `notify_support`; `pay_inject_001` paused at `refund_gate`, rejected, `ord_2002` still `delivered`; `pay_inject_002` → only `#support`; `pay_101` approved, repeat 409; `kill -9` during `pack_delay` → resumed, checker "executed: 3, replays absorbed: 0"; step cap 12/12; smoke 28 passed |
+| 8.7 | Credentials and machine-specific configuration, working tree and git history | `scripts/check_no_secrets.py`: real local secret values checked against files and history: 0 occurrences; sensitive paths ignored and never committed; no machine paths in files needed to run ([output](phase8-secrets-check.txt)) |
+| 8.8 | Every automated suite on the final tree | 371 automated tests, 0 failures (table below) |
+
+**Product defects found in Phase 8, both fixed with regression tests:**
+
+- **D-8.6-1, console decisions refused.** Opening the dev console at the documented `http://127.0.0.1:5173` made approve, reject and cancel fail with 403, because the Vite proxy forwards that `Origin` and the API allowed only `http://localhost:5173` by default. Phase 6/7 live tests had used the production preview origin, so the default path was never exercised. The default is now both loopback spellings. Regression tests: `ManagementSecurityTest` (both origins accepted for POST and preflight; another port still 403), `ManagementCorsTest`.
+- **D-8.6-2, silent worker stall.** When the jar was rebuilt in place under a running worker, a class-loading `Error` (`NoClassDefFoundError`, seen in that worker's log) escaped the dispatch loop, which ended silently and left a live, idle process. The worker now logs `Worker dispatch loop stopped unexpectedly` and exits with status 1, so it can be restarted; lease recovery then completed the stuck AI step (attempt 1 `uncertain`, attempt 2 `recovery` succeeded). Regression test: `WorkerLifecycleTest`.
+
+**Final automated run (8.8)**, on the tree including both fixes:
+
+| Suite | Result |
+| --- | --- |
+| Backend unit | 231 tests, 0 failures, 0 errors, 0 skipped (224 in 7.7 plus 7 regression tests) |
+| Backend real-MySQL (Testcontainers) | 32 tests, 0 failures, 0 errors, 0 skipped |
+| Frontend unit | 58/58 |
+| Frontend type check + build | exit 0 |
+| Browser, mocked API | 27 passed |
+| Helper and verification scripts | 23 tests, OK |
+
+The live browser suite was not re-run in 8.8: the frontend is unchanged since 7.7 (6 passed), and the changed backend behaviour was exercised live through the console in 8.6.
+
+## Requirement coverage
+
+Every requirement in [REQUIREMENTS.md](REQUIREMENTS.md) was reviewed against the checklist in 8.8: all of its implementation and verification tasks must be complete. All 23 verification cases are referenced.
+
+| Requirements | Status | Where verified |
+| --- | --- | --- |
+| R01–R19 (seeds and catalog, workflow lifecycle, validation, auth, triggers, durable execution, templates, nodes, idempotency, retries and timeouts, approvals and gates, AI and schema, injection, step cap, cancellation, traces, console, real provider) | Complete | Phases 3–6 tests; live in 7.1–7.8 and 8.6 |
+| R20 (automated tests, smoke, kill-and-resume, failure drill, report) | Complete | 7.1–7.9, 8.6, 8.8 |
+| R21 (functional app, startup tooling, documentation) | Complete except the 9.3 item | 7.8, 8.1–8.8. Remaining: 9.3, setup from a clean local copy after the owner's manual publication, and recording the repository link |
+| R22 (explainer video, submission with repository link) | Open, Phase 9 | 9.1–9.5; publication and upload are manual steps for the owner |
+
 ## Failures found during verification
 
-None were product defects. All were corrected and re-run; see the evidence file for details.
+Phase 7 failures, none of them product defects (Phase 8's two product defects are described above). All were corrected and re-run; see the evidence file for details.
 
 | Where | Failure | Cause | Resolution |
 | --- | --- | --- | --- |
@@ -141,7 +181,9 @@ OpenRouter `openai/gpt-5-mini` was used only where the user approved it:
 - **7.2:** 3 calls, 1613 reported tokens, all valid on the first attempt.
 - **7.6:** 2 calls.
 
-No schema repairs were needed on the real model. All other runs used the supplied mock provider.
+- **8.6 (demo):** 4 calls (3 initial + 1 recovery replay after the stalled worker), 2071 reported tokens.
+
+No schema repairs were needed on the real model. All other runs used the supplied mock provider. Direct OpenAI has not produced a live answer (its account returned `credit_balance_exhausted` in 5.9); OpenRouter is the verified real provider.
 
 ## Known limitations
 
@@ -155,6 +197,8 @@ No schema repairs were needed on the real model. All other runs used the supplie
 - **Latent clock skew.** A run's `created_at` uses the JVM clock while engine times use MySQL `UTC_TIMESTAMP`. A host/database clock skew can violate the `ck_run_time` check; seen once in tests during Phase 6, not observed in Phase 7.
 - **Redaction edge.** Webhook secrets shorter than 8 characters are protected by key-name rules and by never returning the snapshot, not by substring redaction. Key-name rules intentionally over-redact.
 - **Browser coverage is Chromium only.** Concurrent seed loaders are verified by `SeedMySqlTest`, not a live race. Only one Flyway migration exists, so multi-version upgrades are not exercised.
+- **Worker restart is external.** On an unexpected dispatch-loop failure the worker now exits with status 1 rather than stalling; nothing restarts it automatically (no supervisor in this local deployment). Stop the API and worker before rebuilding the jar.
+- **Live browser suite last run in 7.7.** It was not re-run after Phase 8; the frontend is unchanged and the affected paths were exercised manually in 8.6.
 - **Pack licensing.** The supplied pack contains no license file (D04). Attribution is preserved; redistribution terms must be resolved before any publication.
 
 ## Not verified or out of scope
@@ -176,4 +220,6 @@ Start MySQL, the API, one worker and the supplied mock world as described in the
 | Safety controls | `python3 scripts/verify_safety_controls.py --url http://localhost:8080 --token-file <file> --world http://localhost:9210` (add `--skip-ai` without a real model) |
 | Kill-and-resume | Reset the world, trigger `wf_slow_fulfillment` with pay_201, `kill -9` the worker after the confirmation email, restart it, then `python3 docs/source-review/pack/scripts/duplication_check.py --url http://localhost:9210`. For the second kill point, put `scripts/crash_window_proxy.py` on 9210 in front of a world on another port (commands in [phase7-verification.txt](phase7-verification.txt)) |
 | Automated suites | See [Automated tests](#automated-tests-77) |
+| Full demo | [DEMO.md](DEMO.md) with the `scripts/demo.py` helper |
+| Pre-publication check | `python3 scripts/check_no_secrets.py` |
 | Report consistency | `python3 scripts/check_verification_report.py` |

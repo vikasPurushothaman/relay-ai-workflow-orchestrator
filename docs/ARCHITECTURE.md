@@ -1,6 +1,12 @@
 # Relay architecture
 
-Task 1.4, 2026-09-25. **Architecture design; tasks 2.4–2.5 implement the backend/health scaffold and API/worker bootstrap, not the execution architecture.** Decisions here select implementation structure, not new product features. Dependency versions are selected in [setup task 2.2](SETUP.md); runtime verification remains in the scaffold tasks.
+## Current status
+
+**Final as of task 8.2 (2026-09-28): decisions A01–A07 are implemented as designed and verified.** API and worker run as separate processes from one JAR; MySQL holds domain state and the durable queue; delays and retries are persisted due times; the API owns migrations and seeding; the React console reads and operates through the API only; MySQL runs in Compose and everything else on the host; the AI provider is an adapter with a mock and real (OpenAI, OpenRouter) implementations. Evidence: 224 unit and 32 real-MySQL tests, live crash drills, failure and safety drills in [VERIFICATION_REPORT.md](VERIFICATION_REPORT.md); per-phase results in [Phase 4](phase4-verification.txt), [Phase 5](phase5-verification.txt), [Phase 6](phase6-verification.txt) and [Phase 7](phase7-verification.txt).
+
+Implementation choices made after this design: the durable engine uses explicit `JdbcTemplate` SQL inside Spring-managed transactions for run-first locking and fenced, affected-row-checked writes, while trigger acceptance and CRUD use JPA (Phase 4 note below); HTTP uses the JDK 21 client with hidden retries and redirects disabled. See Known limitations at the end for what the architecture deliberately does not provide.
+
+The sections below are the task 1.4 design record, kept for traceability, with statements that later work made false corrected in place. Design record: Task 1.4, 2026-09-25. At that time the document was an architecture design, and tasks 2.4–2.5 implemented only the backend/health scaffold and API/worker bootstrap, not the execution architecture. Decisions here select implementation structure, not new product features. Dependency versions are selected in [setup task 2.2](SETUP.md).
 
 Sources: [requirements](REQUIREMENTS.md), [MVP](MVP.md), [PDF evidence](source-review/brief.txt), [API contract](source-review/pack/docs/API_CONTRACT.md), [data/recovery contract](source-review/pack/docs/DATA_MODEL.md), [catalog](source-review/pack/data/node_catalog.json), [implementation guide](source-review/pack/docs/IMPLEMENTATION_GUIDE.md), [evaluation guide](source-review/pack/docs/EVALUATION_GUIDE.md), and [inspection findings](CAPSTONE_PACK_REVIEW.md). R/V identifiers refer to REQUIREMENTS; task numbers refer to [PROJECT_PLAN](../PROJECT_PLAN.md).
 
@@ -16,7 +22,7 @@ Sources: [requirements](REQUIREMENTS.md), [MVP](MVP.md), [PDF evidence](source-r
 | A06 | Local API, worker, frontend and Python mocks run on the host; Docker Compose supplies MySQL with persistent storage and a loopback-published port. | The unchanged seeds use localhost:9210; host execution makes that address reach the mock world directly. Backend containerization is not required for this local deliverable. Tasks 2.6, 2.8, 2.9. |
 | A07 | Provider port separates engine logic from canned JSON tests, supplied HTTP mock, and one real free-tier/local model adapter. | Reliable engine tests do not require credentials; real model remains necessary for AI demo. Tasks 5.5, 5.9. |
 
-These choices supersede the earlier proposed defaults where covered. They require implementation tests; they are not claims about an existing build. No cloud infrastructure, broker, multi-worker product, compiler or real email/chat connector is introduced.
+These choices supersede the earlier proposed defaults where covered. At design time they were not claims about an existing build; all are now implemented and tested (see Current status). No cloud infrastructure, broker, multi-worker product, compiler or real email/chat connector is introduced.
 
 ## Runtime topology
 
@@ -32,13 +38,13 @@ flowchart LR
 
 There is no API-to-worker HTTP call. Committed MySQL jobs are the handoff. API handlers never execute nodes or call the model/mock world. The console accesses only the API, never the database or worker. Worker mode has no public application HTTP routes. A process must select exactly one launch mode; ambiguous or absent mode is a startup configuration error.
 
-Use local API port 8080 and frontend port 5173 as intended setup defaults, configurable in Phase 2. In development, the frontend dev-server proxy forwards API requests with unchanged paths; a single configured API origin is used when a proxy is unavailable. Only configured frontend origins are allowed by API CORS. Browser API requests carry the user-entered demo token, kept in memory; no shared token or provider key is embedded in the frontend bundle. Reload may require token entry again. Production hosting is outside this task and the local-only workflow.
+Local API port 8080 and frontend port 5173 are the setup defaults (configurable; see the Configuration section of the [README](../README.md)). In development, the frontend dev-server proxy forwards API requests with unchanged paths; a single configured API origin is used when a proxy is unavailable. Only configured frontend origins are allowed by API CORS. Browser API requests carry the user-entered demo token, kept in memory; no shared token or provider key is embedded in the frontend bundle. Reload may require token entry again. Production hosting is outside this task and the local-only workflow.
 
 Mock-world URL is http://localhost:9210; supplied HTTP mock is http://localhost:9001. Only MySQL traffic crosses the Compose boundary. Changing MOCK_WORLD_URL affects notify/order adapters, not literal http_request URLs in saved definitions. For the seeded demo keep the mock world on 9210; if that port is occupied, resolve the conflict rather than silently rewriting seed definitions. This resolves the networking part of D04.
 
 ## Internal module boundaries
 
-Directories backend/, frontend/, docs/ and scripts/ now exist (task 2.3); backend contains the tasks 2.4–2.5 scaffold/bootstrap and frontend the task 2.7 React/Vite shell, placeholder routes and API transport. See [setup](SETUP.md) for local configuration boundaries. Backend starts as one Gradle module with package boundaries; no microservices or separately deployed internal modules.
+Directories backend/, frontend/, docs/ and scripts/ hold the Spring Boot API/worker, the React/Vite console (tasks 2.7, 6.3–6.12), design documents with evidence, and setup/verification tools. See [setup](SETUP.md) for local configuration boundaries. Backend starts as one Gradle module with package boundaries; no microservices or separately deployed internal modules.
 
 | Package/component | Owns | Dependencies and restrictions |
 | --- | --- | --- |
@@ -48,7 +54,7 @@ Directories backend/, frontend/, docs/ and scripts/ now exist (task 2.3); backen
 | domain | Catalog-driven definitions, pure publish validation, template resolution, schema-validation boundary, transition/gate/cap rules. | Independent of HTTP controllers, JPA entities and provider SDKs. Exact semantics assigned to 1.6–1.7. |
 | engine | Worker orchestration, node dispatch, step preparation, retry/delay planning and recovery coordination. | Calls domain rules and application/persistence ports; dispatches only the run snapshot. It cannot edit published workflows or fabricate human decisions. |
 | nodes | Seven handlers below and typed execution outcomes: completed, wait, retry or failure. | Handlers do not independently advance the graph or write jobs. Engine owns persistence/advancement. |
-| persistence | JPA mappings/repositories, domain mapping, durable queue SQL and ownership checks. | MySQL is source of truth; transaction participants use the same database. Migrations/constraints planned in 1.5. |
+| persistence | JPA mappings/repositories, domain mapping, durable queue SQL and ownership checks. | MySQL is source of truth; transaction participants use the same database. Migrations/constraints designed in 1.5, implemented in 3.1. |
 | integrations | HTTP transport, mock-world adapters, AI provider implementations. | Receives already-resolved requests and engine-owned keys. Returns result/error/usage; no workflow-state or approval writes. |
 | trace | Safe projections and redaction for API, console and diagnostic logging. | Reads persisted state; cannot drive execution from redacted presentation data. |
 
@@ -70,7 +76,7 @@ Catalog params, output types and template flags remain unchanged. Provider respo
 
 ## API responsibility map
 
-These are the eight existing fixed planned routes, not implemented endpoints. Request/error shapes stay in REQUIREMENTS and the supplied API contract; [API_DOCUMENTATION.md](../API_DOCUMENTATION.md) will be updated with each implementation.
+These are the eight fixed routes of the supplied contract; all are implemented and verified. The complete list of 16 routes, with request/error shapes, is in [API_DOCUMENTATION.md](../API_DOCUMENTATION.md).
 
 | Fixed route | Application service owner |
 | --- | --- |
@@ -83,7 +89,7 @@ These are the eight existing fixed planned routes, not implemented endpoints. Re
 | `GET /approvals?status=pending` | Pending-approval query |
 | `POST /approvals/{approvalId}/approve` | Authenticated human decision command |
 
-The same API process owns required workflow detail/update, run listing, rejection and cancellation flows. Their flexible route choices and exact error vocabulary remain D02. Management/approval routes use Authorization bearer token; webhooks require only X-Relay-Secret and reject absent/wrong secrets with 401/403. The worker receives neither HTTP caller credentials nor permission from model text. A constant demo decider identity is sufficient but decision identity/time must be persisted.
+The same API process owns required workflow detail/update, run listing, rejection and cancellation flows. Their flexible route choices and exact error vocabulary (D02) were settled at implementation and are documented in API_DOCUMENTATION. Management/approval routes use Authorization bearer token; webhooks require only X-Relay-Secret and reject absent/wrong secrets with 401 `invalid_webhook_secret`. The worker receives neither HTTP caller credentials nor permission from model text. A constant demo decider identity is sufficient but decision identity/time must be persisted.
 
 ## Persistence and execution flows
 
@@ -99,19 +105,19 @@ Single-worker operation is a deployment constraint, not permission to ignore rac
 
 ## Configuration contract
 
-Task 2.5 binds RELAY_MODE, RELAY_DB_URL/USER/PASSWORD, RELAY_API_PORT, the API RELAY_DEMO_TOKEN startup prerequisite and RELAY_DB_TX_TIMEOUT_MS. Other names below remain selected design contracts for later binding. Secrets come from local environment or ignored local configuration; examples use placeholders. bootstrap validates required settings for its mode before serving/claiming. Errors identify the setting without printing its value. Phase 2 sets precise supported versions and numeric defaults; no undocumented fallback to a real provider.
+All settings below are bound (tasks 2.5, 3.4, 3.9, 4.x, 5.9); defaults match [backend/.env.example](../backend/.env.example) and the README configuration tables, which `scripts/check_readme.py` checks against the code. Secrets come from local environment or ignored local configuration; examples use placeholders. bootstrap validates required settings for its mode before serving/claiming. Errors identify the setting without printing its value. Phase 2 sets precise supported versions and numeric defaults; no undocumented fallback to a real provider.
 
 | Setting/group | Consumer | Validation and secrecy |
 | --- | --- | --- |
 | RELAY_LOAD_SEEDS | API startup | Task3.9: true by default, exactly true/false; insert missing canonical Published workflows only. Existing IDs preserved; worker/scaffold never load seeds. |
 | RELAY_MODE | bootstrap | Required api or worker, exactly one; worker has no public application listener. |
 | RELAY_DB_URL, RELAY_DB_USER, RELAY_DB_PASSWORD | API, worker, seed operation | Required single-host MySQL JDBC URL/schema, no URL credentials/query/fragment; user and password nonempty. Password secret. Database unavailable → no readiness/claiming. |
-| RELAY_API_PORT, RELAY_ALLOWED_ORIGINS | API | Valid local port and explicit console-origin list; implemented defaults8080 and http://localhost:5173; blank origin list disables cross-origin management access. No wildcard authenticated access. |
+| RELAY_API_PORT, RELAY_ALLOWED_ORIGINS | API | Valid local port and explicit console-origin list; implemented defaults8080 and http://localhost:5173,http://127.0.0.1:5173 (task 8.6); blank origin list disables cross-origin management access. No wildcard authenticated access. |
 | RELAY_DEMO_TOKEN | API | Required nonempty management token; secret, never bundled in frontend or logged. Webhook authentication stays separate. |
 | VITE_RELAY_API_BASE_URL | frontend | Public API address only, optional when using dev proxy; never a token or provider URL/key. |
-| MOCK_WORLD_URL | worker | Absolute HTTP(S) origin; local demo http://localhost:9210. Adapter target for notify/order actions, not a seed-definition rewrite. |
-| RELAY_HTTP_ALLOWED_ORIGINS | worker | Explicit resolved-target allowlist including mock origin for demo; matching/redirect details decided before 4.9. Provider transport has separate configured destination. |
-| RELAY_AI_MODE, RELAY_AI_BASE_URL, RELAY_AI_MODEL, RELAY_AI_API_KEY | worker/provider adapter | Modes canned (test only), mock-http, real; validate settings needed by selected adapter. No silent fake fallback in real mode. Key secret; provider identity/model may appear in traces. |
+| MOCK_WORLD_URL | worker (also parsed by API) | Absolute HTTP(S) origin; local demo http://localhost:9210. Adapter target for notify/order actions, not a seed-definition rewrite. |
+| RELAY_HTTP_ALLOWED_ORIGINS | worker (also parsed by API) | Exact-origin allowlist, default the mock-world origin; other destinations fail `destination_denied`; redirects are never followed (task 4.9). Provider transport has separate configured destination. |
+| RELAY_AI_MODE, RELAY_AI_BASE_URL, RELAY_AI_MODEL, RELAY_AI_API_KEY | worker/provider adapter | Modes mock-http (default), openai, openrouter; canned JSON fixtures are test-only fakes, not a mode. Settings are validated when a call is prepared: invalid mode, key/provider mismatch or missing model fails that step with a named code. Real endpoints are fixed. No silent fake fallback in real mode. Key secret; provider identity/model may appear in traces. |
 | RELAY_HTTP_TIMEOUT_MS, RELAY_AI_TIMEOUT_MS | worker/transports | Positive finite deadlines for every call, including body reading; Defaults 10000/30000 ms in task 1.8; adapter verification in 4.9/5.9. |
 | RELAY_JOB_POLL_MS, RELAY_JOB_LEASE_MS, RELAY_JOB_RENEW_MS, RELAY_DB_TX_TIMEOUT_MS | worker/queue | Defaults 250/60000/10000/5000 ms; bootstrap DB timeout range 1000..60000 ms; task 1.8 requires lease > renewal + longest call + two transaction deadlines. Unsafe configuration rejects. |
 | RELAY_RETRY_MAX_ATTEMPTS, RELAY_RETRY_BASE_MS, RELAY_RETRY_MAX_MS | worker/retry policy | Defaults 3/1000/30000; task 1.8 defines shared transport/recovery budget plus one separate schema repair. Policy is frozen per run. |
@@ -127,11 +133,11 @@ Trace records must retain resolved inputs, validated outputs, attempts, timing a
 - **AI:** unchanged supplied mock on 9001 exposes POST /v1/chat/completions and emits prose; use it for transport/invalid-output tests. Successful schema tests use canned JSON. Real model adapter choice/configuration is task 5.9; real demo verification remains required. Schema validation belongs to Relay even if a provider offers structured output.
 - **Console:** local frontend calling API; no direct dependency on provider availability. API trace reads and human decisions can remain available while a provider is down, if MySQL is healthy.
 
-Startup order: start MySQL and wait for connectivity; start API and complete migrations; explicitly load/validate the four published seeds idempotently; start mocks and configured provider; start one worker; start frontend. Normal shutdown stops new worker claims and allows a bounded in-flight completion; forced-kill recovery uses persisted state. Exact commands, readiness route and shutdown deadlines will be implemented/documented in Phase 2. Do not seed/reset automatically on every worker restart or overwrite edited workflows; duplicate-seed policy belongs to 3.9.
+Startup order: start MySQL and wait for connectivity; start API and complete migrations; explicitly load/validate the four published seeds idempotently; start mocks and configured provider; start one worker; start frontend. Normal shutdown stops new worker claims and allows a bounded in-flight completion; forced-kill recovery uses persisted state. Exact commands and the readiness route are in the Quick start section of the [README](../README.md). Do not seed/reset automatically on every worker restart or overwrite edited workflows; duplicate-seed policy belongs to 3.9.
 
 ## Verification and remaining design work
 
-All runtime cases below are planned, **not run**. Prerequisites and detailed expected outcomes are REQUIREMENTS V cases; implementation tasks must add actual tests and API documentation.
+Design-time roadmap (task 1.4): these runtime cases were planned then, and have since been implemented and run in the listed tasks; actual results are in [VERIFICATION_REPORT.md](VERIFICATION_REPORT.md). Detailed expected outcomes are REQUIREMENTS V cases.
 
 | Boundary | Input/action → expected result | Tasks / cases |
 | --- | --- | --- |
@@ -165,7 +171,7 @@ sequential with a separate lease-renewal thread. Transport uses the JDK21 HTTP c
 hidden resends disabled, per-call total deadlines and bounded bodies. API/worker continue
 to run as separate processes. No new dependency, schema migration, broker or additional
 service is introduced. See [execution evidence](phase4-verification.txt); Phase5 handlers
-and Phase6 run-read/console features remain pending.
+and Phase6 run-read/console features were added afterwards (notes below).
 
 
 ### Phase5 implementation update (2026-09-28)
@@ -184,4 +190,20 @@ for approval, complaint/question follows notification, and always block unapprov
 actions. Earlier design-stage statements about an open discrepancy are historical. No
 canonical pack bytes or seed graphs were changed. See [API contracts](../API_DOCUMENTATION.md),
 [setup](SETUP.md) and [actual evidence](phase5-verification.txt).
-Run-read/trace projections and interactive console data remain Phase6.
+
+### Phase6 and Phase7 update (2026-09-28)
+
+Phase6 added the redacted run list/detail/trace projections (`trace` component) and the
+read-and-operate console; Phase7 verified the whole architecture end to end, including
+live `kill -9` drills at both crash points, failure injection and safety controls. No
+architectural decision changed. See [VERIFICATION_REPORT.md](VERIFICATION_REPORT.md).
+
+## Known limitations
+
+Deliberate architectural limits. The canonical list, with evidence, is the Known limitations section of [VERIFICATION_REPORT.md](VERIFICATION_REPORT.md).
+
+- **One active worker.** Multiple concurrent workers are outside scope; after a crash the replacement waits for the lease (default 60 s).
+- **Exactly-once depends on the receiver.** At-least-once dispatch with stable keys; an arbitrary receiver without idempotency may see a resend after an uncertain outcome, and a timed-out call may still have executed. Real-provider retries after a timeout may be billed twice.
+- **Local, single-tenant deployment.** One management token, loopback binding, no TLS, no production hosting.
+- **Mock AI provider replies in prose,** so AI success paths need a real provider.
+- **Latent clock skew.** Run `created_at` uses the JVM clock while engine times use MySQL `UTC_TIMESTAMP`; host/database skew can violate the `ck_run_time` check.

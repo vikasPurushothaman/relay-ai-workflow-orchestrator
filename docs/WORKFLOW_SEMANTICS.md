@@ -1,6 +1,10 @@
 # Relay workflow semantics
 
-Task 1.7, 2026-09-25. **Design only; no application behavior verified.** Sources: [PDF evidence](source-review/brief.txt), [API contract](source-review/pack/docs/API_CONTRACT.md), [catalog](source-review/pack/data/node_catalog.json), [seeds](source-review/pack/data/seed_workflows.json), [guide](source-review/pack/docs/IMPLEMENTATION_GUIDE.md), [requirements](REQUIREMENTS.md), [data model](DATA_MODEL.md), [states](STATE_TRANSITIONS.md), [roadmap](../PROJECT_PLAN.md). Rules explicitly chosen below fill flexible contracts; they do not modify the source pack. Java, Spring Boot, JPA and MySQL remain the implementation stack.
+## Current status
+
+**Final as of task 8.2 (2026-09-28): these semantics are implemented and verified.** Publish validation (P01–P10), template resolution, condition branching, loops with a persisted step cap, delays, AI schema enforcement and run-scoped approval gates are covered by unit and real-MySQL tests, and were exercised live in Phase 7: all four seed scenarios, the runaway loop failing `max_steps` at 12/12 (also across a worker crash), cap boundaries (3 of 3 succeeds, 2 of 3 fails), and approval-gate bypass attempts. Evidence: [VERIFICATION_REPORT.md](VERIFICATION_REPORT.md), [Phase 7](phase7-verification.txt). Routes are documented in [API_DOCUMENTATION.md](../API_DOCUMENTATION.md).
+
+The sections below are the task 1.7 design record. Design record: Task 1.7, 2026-09-25, written as design only, before application behavior was verified. Sources: [PDF evidence](source-review/brief.txt), [API contract](source-review/pack/docs/API_CONTRACT.md), [catalog](source-review/pack/data/node_catalog.json), [seeds](source-review/pack/data/seed_workflows.json), [guide](source-review/pack/docs/IMPLEMENTATION_GUIDE.md), [requirements](REQUIREMENTS.md), [data model](DATA_MODEL.md), [states](STATE_TRANSITIONS.md), [roadmap](../PROJECT_PLAN.md). Rules explicitly chosen below fill flexible contracts; they do not modify the source pack. Java, Spring Boot, JPA and MySQL remain the implementation stack.
 
 ## Publication and acceptance
 
@@ -76,7 +80,7 @@ Catalog flags do not make numeric amount_usd or delay seconds templatable. Runti
 
 Select JSON Schema Draft 2020-12: absent $schema defaults to that dialect; explicit $schema must name its standard schema URI. Use networknt json-schema-validator 3.0.6 selected in [setup task 2.2](SETUP.md), with actual schema behavior tested in 5.7. Validate schema shape at publish; allow local fragment references only, reject unresolved or external references and alternate/custom dialects. Bundle the standard meta-schema; no schema fetches. Within the chosen standard vocabulary, format is annotation-only, not an extra assertion. This choice follows the distinction in the [official validation specification](https://json-schema.org/draft/2020-12/json-schema-validation); do not promise email/date checking from format alone. Unknown annotation keywords are preserved without inventing assertions; unsupported required vocabularies reject. Resource limits must fail clearly rather than silently skip validation.
 
-Missing schema-required fields, wrong types/enums, extra fields when forbidden, or summary longer than the triage limit fail validation. No coercion/default filling/removal of extra fields. ai_repair_count persists across transport attempts/restart. Second invalid output is permanent failure; no downstream branch sees it. Provider identity/known token usage recorded for all attempts. Exact validator library, transport budgets and provider details remain later tasks.
+Missing schema-required fields, wrong types/enums, extra fields when forbidden, or summary longer than the triage limit fail validation. No coercion/default filling/removal of extra fields. ai_repair_count persists across transport attempts/restart. Second invalid output is permanent failure; no downstream branch sees it. Provider identity/known token usage recorded for all attempts. Exact validator library (networknt json-schema-validator, task3.7), transport budgets (task1.8/4.12) and provider details (task5.9) were settled later.
 
 ## Step numbering and cap
 
@@ -109,7 +113,7 @@ These paths are design expectations, not completed application runs. AI classifi
 
 ## Test roadmap and checks
 
-Future tests require implemented parser/engine, canned provider, controllable clock and MySQL where persistence matters. All runtime tests are **not run**.
+Design-time record (task 1.7), as written then: All runtime tests are **not run**. They were implemented in the owning tasks and pass (see Current status); they needed the parser/engine, canned provider, controllable clock and MySQL.
 
 | Case | Prerequisites / inputs and actions | Expected outcome / owners |
 | --- | --- | --- |
@@ -128,13 +132,13 @@ Future tests require implemented parser/engine, canned provider, controllable cl
 
 Run `python3 scripts/check_workflow_semantics.py`, the six prior design checkers and `python3 docs/source-review/pack/scripts/validate_pack.py`. The new checker validates document references/catalog flags and seed path walkthroughs, including cap arithmetic; it is not an implementation of template execution or JSON Schema validation. Negative copies test omissions. Manual P01–P10 and W01–W12 review supplements those checks. Actual outcomes: [workflow-semantics-verification.txt](workflow-semantics-verification.txt).
 
-D02 lifecycle/duplicate publication rules and D03 template/schema/cap rules are settled here; route names, response codes, client concurrency headers, pagination and exact transport policies remain their implementation tasks. Task 1.8 defines retry budgets/backoff, lease fencing and recovery SQL in [RECOVERY.md](RECOVERY.md); executable verification remains implementation work. Optional schedules, numbered versions, parallelism, compiler and run time/token caps remain excluded. No routes implemented; never push or publish.
+D02 lifecycle/duplicate publication rules and D03 template/schema/cap rules are settled here; route names, response codes, client concurrency headers, pagination and exact transport policies were settled in their implementation tasks (see API_DOCUMENTATION). Task 1.8 defines retry budgets/backoff, lease fencing and recovery SQL in [RECOVERY.md](RECOVERY.md), since implemented and verified. Optional schedules, numbered versions, parallelism, compiler and run time/token caps remain excluded. No routes implemented by this design task; never push or publish.
 
 Implementation update (task3.7): the structural parser3.5 and publish-validation component3.7
 now cover P01–P10 admission checks with automated seed/catalog/graph/template/schema tests.
 This does not implement publication storage, template rendering or workflow execution.
-Runtime resolved values, transport/deadline rules and output-schema enforcement remain
-in their assigned later tasks. See [validation evidence](publish-validation-verification.txt)
+Runtime resolved values, transport/deadline rules and output-schema enforcement followed
+in tasks 4.6, 4.9 and 5.7. See [validation evidence](publish-validation-verification.txt)
 and [API implementation status](../API_DOCUMENTATION.md).
 
 
@@ -174,4 +178,4 @@ for approval, complaint/question follows notification, and always block unapprov
 actions. Earlier design-stage statements about an open discrepancy are historical. No
 canonical pack bytes or seed graphs were changed. See [API contracts](../API_DOCUMENTATION.md),
 [setup](SETUP.md) and [actual evidence](phase5-verification.txt).
-Run-read/trace projections and interactive console data remain Phase6.
+Phase6 exposed resolved inputs and branch choices in the run trace; no semantic changed.

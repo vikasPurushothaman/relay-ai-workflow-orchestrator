@@ -1,6 +1,12 @@
 # Relay state transitions
 
-Task 1.6, 2026-09-25. **Design only; no application or runtime verification.** Sources: [PDF evidence](source-review/brief.txt), [API contract](source-review/pack/docs/API_CONTRACT.md), [pack data model](source-review/pack/docs/DATA_MODEL.md), [catalog](source-review/pack/data/node_catalog.json), [implementation guide](source-review/pack/docs/IMPLEMENTATION_GUIDE.md), [architecture](ARCHITECTURE.md), [data model](DATA_MODEL.md), [requirements](REQUIREMENTS.md), [roadmap](../PROJECT_PLAN.md). Fixed run statuses and cancellation requirements come from the API contract. Internal states and ordering below are selected design decisions, not additional product features.
+## Current status
+
+**Final as of task 8.2 (2026-09-28): the state machines below are implemented and verified.** Run, step, attempt, job and approval states match the schema's check constraints; transitions are enforced under run-row serialization with fenced worker writes. Evidence: race and crash tests in the real-MySQL suite (EngineMySqlTest, HumanAiMySqlTest) and live drills in Phase 7 — cancel/approve/reject outcomes, retry exhaustion (`retry_exhausted`), step cap (`max_steps`), uncertain attempts after `kill -9`, and delay/approval waits across restarts. See [VERIFICATION_REPORT.md](VERIFICATION_REPORT.md), [Phase 4](phase4-verification.txt), [Phase 5](phase5-verification.txt) and [Phase 7](phase7-verification.txt) results.
+
+Behaviour settled at implementation: immediate cancellation returns 200 with status `cancelled`; cancellation of leased, possibly in-flight work returns 202 with status `running`, and repeats while it is pending return 202 and keep the first request's metadata; terminal cancellation and every repeated or conflicting decision return 409 (see [API_DOCUMENTATION.md](../API_DOCUMENTATION.md)). The console shows `queued`/`running`/`waiting_approval` runs as cancellable and refreshes run detail every 2 s until the run is final.
+
+The sections below are the task 1.6 design record, kept for traceability. Design record: Task 1.6, 2026-09-25, written as design only, before any application or runtime verification. Sources: [PDF evidence](source-review/brief.txt), [API contract](source-review/pack/docs/API_CONTRACT.md), [pack data model](source-review/pack/docs/DATA_MODEL.md), [catalog](source-review/pack/data/node_catalog.json), [implementation guide](source-review/pack/docs/IMPLEMENTATION_GUIDE.md), [architecture](ARCHITECTURE.md), [data model](DATA_MODEL.md), [requirements](REQUIREMENTS.md), [roadmap](../PROJECT_PLAN.md). Fixed run statuses and cancellation requirements come from the API contract. Internal states and ordering below are selected design decisions, not additional product features.
 
 ## State vocabulary
 
@@ -125,10 +131,10 @@ Pending/approved/rejected keep closed_at and close_reason NULL; closed requires 
 - Cancel versus completion: request commits first → completion may record current result but run ends cancelled, even when that result failed or was final success. Terminal completion commits first → cancel conflicts (409). Nonfinal completion commits first → cancel acts on the new ready/claimed work under the same rules. A later already-admitted node is then the current step, not a retroactively cancelled effect.
 - Cancel versus approve: cancel first closes approval and subsequent decisions conflict. Approve first persists immutable decision and one continuation; cancel then stops that running continuation if still ready, or cooperatively cancels current invocation if claimed. If approval was final, the run is succeeded and cancel returns 409.
 - Approve versus reject, and duplicate decisions: first decision commits; every later decision, including identical replay, conflicts without new work. Reject records a human decision; cancel records administrative closure. Reject first makes later cancel terminal conflict.
-- Duplicate cancel while a leased run already has a pending request: accept as an unchanged pending command, preserve first actor/time/reason. Once terminal, even identical cancellation returns 409 per contract. Success envelope/status for accepted cancellation remains a route implementation choice.
+- Duplicate cancel while a leased run already has a pending request: accept as an unchanged pending command, preserve first actor/time/reason. Once terminal, even identical cancellation returns 409 per contract. The accepted-cancellation response is documented in API_DOCUMENTATION (task 5.11).
 - Worker killed after cancellation request: recovery closes unfinished attempt as uncertain, cancels step/run and inactivates job without resending the request. Remote effect may already exist; trace must state uncertainty, not promise reversal. Uncancelled recovery instead reuses request/key with bounded attempts.
 
-Authentication/authorization is checked before transition, outside these business races. Invalid credentials, malformed requests and missing resources create no state/job/decision. Exact route validation and error vocabulary remain implementation tasks; no live endpoints are claimed here. Losing a response after commit does not undo a decision; clients read state after a conflict or uncertain response. Duplicate triggers remain distinct accepted runs, not duplicate decisions.
+Authentication/authorization is checked before transition, outside these business races. Invalid credentials, malformed requests and missing resources create no state/job/decision. Exact route validation and error vocabulary were settled at implementation and are documented in API_DOCUMENTATION. Losing a response after commit does not undo a decision; clients read state after a conflict or uncertain response. Duplicate triggers remain distinct accepted runs, not duplicate decisions.
 
 ## Invariants and recovery boundaries
 
@@ -142,7 +148,7 @@ Authentication/authorization is checked before transition, outside these busines
 
 ## Test roadmap and document verification
 
-All runtime cases below are **not run**; prerequisites include implemented migrations, API/worker, controlled clock/provider and MySQL transaction tests. Table events are specifications, not an executable engine.
+Design-time roadmap (task 1.6): at that time these runtime cases were not yet run. They were implemented in the listed tasks and pass in the backend suites (task 7.7); prerequisites were implemented migrations, API/worker, controlled clock/provider and MySQL transaction tests.
 
 | Case | Setup and action | Expected result / owners |
 | --- | --- | --- |
@@ -161,7 +167,7 @@ All runtime cases below are **not run**; prerequisites include implemented migra
 
 Run `python3 scripts/check_state_transitions.py` and the existing architecture/data-model/requirements/MVP/source checkers. The new checker reads transition tables, validates state membership and terminal absorption, checks required events and schema agreement, and rejects mutated documents. Manual review walks S01–S12 and both race orders against the pack. Actual results: [state-transitions-verification.txt](state-transitions-verification.txt). Document checks cannot prove SQL locking or crash safety.
 
-Task 1.7 documents publication/edit semantics, template resolution, branch/loop and precise cap counting in [workflow semantics](WORKFLOW_SEMANTICS.md). Task 1.8 documents the lease/retry/atomic recovery protocol in [RECOVERY.md](RECOVERY.md); SQL/runtime tests remain outstanding. D01 resolved on 2026-09-28 (preserve supplied graph and enforce approval gates); no state machine forces the injection seed into an approval branch. Full API route documentation comes with implementation. All work stays local; never push or publish.
+Task 1.7 documents publication/edit semantics, template resolution, branch/loop and precise cap counting in [workflow semantics](WORKFLOW_SEMANTICS.md). Task 1.8 documents the lease/retry/atomic recovery protocol in [RECOVERY.md](RECOVERY.md); its SQL/runtime tests were completed in Phases 3–4. D01 resolved on 2026-09-28 (preserve supplied graph and enforce approval gates); no state machine forces the injection seed into an approval branch. Full API route documentation is in API_DOCUMENTATION. All work stays local; never push or publish.
 
 
 ### Phase5 implementation update (2026-09-28)
@@ -180,4 +186,8 @@ for approval, complaint/question follows notification, and always block unapprov
 actions. Earlier design-stage statements about an open discrepancy are historical. No
 canonical pack bytes or seed graphs were changed. See [API contracts](../API_DOCUMENTATION.md),
 [setup](SETUP.md) and [actual evidence](phase5-verification.txt).
-Run-read/trace projections and interactive console data remain Phase6.
+
+### Phase6 and Phase7 update (2026-09-28)
+
+Phase6 exposed these states read-only through `GET /runs` and `GET /runs/{runId}` and the
+console; no state or transition was added. Phase7 exercised them live (see Current status).

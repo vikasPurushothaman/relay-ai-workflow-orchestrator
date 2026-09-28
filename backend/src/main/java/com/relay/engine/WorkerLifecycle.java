@@ -22,6 +22,8 @@ public class WorkerLifecycle implements SmartLifecycle {
     private volatile boolean running;
     private ExecutorService dispatcher;
     private ScheduledExecutorService heartbeat;
+    /** Ends a worker whose dispatch loop died; a separate thread lets Spring's shutdown await the finished dispatcher. */
+    Runnable fatalExit=()->new Thread(()->System.exit(1),"relay-worker-fatal-exit").start();
     public WorkerLifecycle(EngineStore store,HttpTransport transport,Environment env,com.relay.ai.AiProvider ai) {
         this.ai=ai;
         this.store=store;this.transport=transport;
@@ -35,6 +37,20 @@ public class WorkerLifecycle implements SmartLifecycle {
         if(running)return;
         running=true;dispatcher=Executors.newSingleThreadExecutor();heartbeat=Executors.newSingleThreadScheduledExecutor();
         dispatcher.submit(()->{
+            try { dispatchLoop(); }
+            catch(Throwable fatal) {
+                // An escaping Throwable (e.g. a class-loading failure after the jar was replaced) would otherwise end
+                // this task silently and leave a live, idle worker. Exit loudly; lease recovery resumes unfinished work.
+                if(!running)return;
+                running=false;
+                try { LoggerFactory.getLogger(WorkerLifecycle.class).error("Worker dispatch loop stopped unexpectedly ({}); exiting so the worker can be restarted",fatal.getClass().getName()); }
+                catch(Throwable ignored) {}
+                fatalExit.run();
+            }
+        });
+    }
+    private void dispatchLoop() {
+        {
             boolean expiredFirst=false;
             while(running) {
                 boolean found=false;
@@ -76,7 +92,7 @@ public class WorkerLifecycle implements SmartLifecycle {
                 }
                 if(!found)try{Thread.sleep(pollMs);}catch(InterruptedException ignored){}
             }
-        });
+        }
     }
     public synchronized void stop() {
         running=false;

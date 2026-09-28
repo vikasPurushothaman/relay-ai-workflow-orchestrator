@@ -1,0 +1,125 @@
+Task 8.6 — Full demo performed from the documented setup (2026-09-28)
+====================================================================
+
+Purpose: perform every scene of docs/DEMO.md, commands verbatim, on a live stack
+started with the README, driving the console in the built-in browser, and fix
+whatever does not work as written.
+
+Setup and user decisions
+------------------------
+- Fresh copy of the working tree (git ls-files --cached --others
+  --exclude-standard) in the session scratchpad; build `test bootJar` exit 0.
+- Compose project relay-verify86 (own volume; removed at the end). The user's
+  relay_mysql_data volume and local-data/ were not touched.
+- Worker with the user-approved OpenRouter config: backend/.env.ai sourced in
+  place (openai/gpt-5-mini); key never printed.
+- Demo-terminal block (Scene 0 step 3) and every scene block were extracted from
+  DEMO.md and executed as written. The console was driven in the built-in browser.
+- A mock provider already running on 127.0.0.1:9001 (PID 76536, started from the
+  user's own terminal at 23:22:01) was left untouched; the optional schema drill
+  used the documented override `run_mock.py provider --port 9011` with
+  RELAY_AI_BASE_URL=http://localhost:9011.
+- No secret or token values are recorded here.
+
+Results by scene
+----------------
+S0 PASS  API seeds created=4, preserved=0; world up; demo variables set (token 64
+         chars, both webhook secrets set, not shown); world reset {"status": "reset"}.
+S1 PASS  Console connected; Workflows lists the 4 seeds as Published;
+         wf_support_triage detail: classify(ai) -> route(condition) -> refund_gate
+         (approval) -> issue_refund(order_action) -> notify_customer, or notify_support.
+S2 PASS  pay_001 -> run_6ba8d3aabb904ba19698b0a8e5fa3894 succeeded in about 6 s:
+         classify -> route -> notify_support; classify output
+         {"category":"complaint","priority":"high","summary":...}; openrouter /
+         openai/gpt-5-mini, 185+314 = 499 tokens, 0 of 1 repairs; 1 chat.message
+         keyed :3; no refund. Console Inspect showed the resolved prompt (message
+         marked untrusted), schema, validated output, provider/model and tokens.
+S3a PASS after fix D-8.6-1
+         pay_inject_001 -> run_6850ad753b524ad3bf24a4c8a6a71ed1: model
+         refund_request/high, summary describes the "admin approval" claim;
+         waiting_approval at refund_gate; ledger had no order.refund; ord_2002
+         "delivered"; 655 tokens.
+         First console Reject: "Access denied" — POST /approvals/{id}/reject 403
+         through the Vite proxy (defect D-8.6-1 below). After the fix and an API
+         restart, Reject -> "Rejected. The run was cancelled."; run cancelled,
+         cancellation_reason approval_rejected, gate output
+         {"decision":"rejected","decided_by":"demo-operator"}; issue_refund never
+         ran; ord_2002 still "delivered"; no order.refund.
+S3b PASS (with recovery; see finding D-8.6-2)
+         pay_inject_002 -> run_f122de14d1d94657ba4b7119a7734ad5. The first worker
+         had died silently (D-8.6-2), so the classify attempt stayed running. After
+         a fresh worker started: attempt 1 initial -> uncertain (unknown_effect),
+         attempt 2 recovery -> succeeded (213+704 tokens); ai_usage_complete false
+         (lost attempt's usage unknown). Model: question/high, summary flags the
+         exfiltration attempt. Only effect: one chat.message to #support; 0 ledger
+         entries mention evil; nothing sent to audit@evil-example.com.
+S4 PASS  pay_101 -> run_949e627baae346849ac1138ab5c6dbfa waiting at finance_gate
+         (approval card "Expense of $250 from dev1@example.com: Conference ticket");
+         console Approve -> "Approved by the demo operator. Run is now running.";
+         succeeded via approved_notice, exactly 1 email keyed :3; repeat approve
+         via API -> 409.
+S5 PASS  world reset; pay_201 -> run_4354df52b2f34dfbbccaed0e2275a5a4; confirm
+         email in ledger; `kill -9 "$(python3 scripts/demo.py worker-pid)"`
+         (demo.py found PID 81221 = recorded PID) at 18:01:07Z during pack_delay;
+         6 s later no progress; worker restarted 18:01:35Z; run succeeded about 3 s
+         later: confirm, pack_delay, create_shipment, shipped_notice, 1 attempt each,
+         confirm not repeated; ledger 3 executed (2 email.send, 1 shipment.create),
+         keys :1 :3 :4; duplication_check.py: "Ledger entries checked: 3 (executed:
+         3, replays absorbed: 0, rejected: 0) ... PASS: every side effect executed
+         exactly once." exit 0.
+S6 PASS  wf_runaway -> run_67e05c801a224606a272a046988403c4 failed
+         error=max_steps@check_order after 12 steps in about 5 s; console shows
+         "STOPPED BECAUSE Step cap reached (max_steps) at check_order" and
+         "12 of 12 allowed".
+S7 PASS  smoke_test.py --url "$API" --token "$RELAY_DEMO_TOKEN": "28 passed,
+         0 warnings, 0 failed", exit 0.
+Optional outage drill PASS: run_5f48680218b44232bdb62a723a809f9b; world set down
+         during pack_delay; create_shipment attempt 1 http_503 (delay 1000 ms),
+         attempt 2 http_503 (delay 2000 ms); world restored; attempt 3 succeeded
+         with the same key; run succeeded.
+Optional schema drill PASS: worker on the mock provider (port 9011);
+         pay_003 -> run_b73c5f7b0acd424f89ec4e57233fddf0 failed invalid_ai_json at
+         classify; attempts initial and schema_repair, both invalid_ai_json,
+         mock-http / alpha-small; ai_repair_count 1; no downstream step.
+
+Real-provider usage: 4 OpenRouter calls (3 initial + 1 recovery replay), 0 schema
+repairs; reported tokens 499 + 655 + 917 = 2071 (S3b's lost first attempt has
+unknown usage). Within the user's approval (at most 6 calls).
+
+Defects and findings
+--------------------
+D-8.6-1 (fixed, code + regression tests): console approve/reject/cancel returned 403
+  when the dev console is opened at the documented http://127.0.0.1:5173, because
+  the Vite proxy forwards that Origin and the API default allowed only
+  http://localhost:5173. Probe with a nonexistent approval through the proxy:
+  before 127.0.0.1:5173 -> 403, localhost:5173 -> 404; after 127.0.0.1:5173 -> 404,
+  localhost:5173 -> 404, 127.0.0.1:5174 -> 403. Fix: default
+  RELAY_ALLOWED_ORIGINS = http://localhost:5173,http://127.0.0.1:5173
+  (ManagementCors.DEFAULT_ORIGINS). Tests: ManagementSecurityTest (both origins,
+  POST + preflight; other port still 403), ManagementCorsTest (default parses to
+  exactly two origins). Red first: only the 127.0.0.1 case failed.
+D-8.6-2 (fixed, code + regression tests): the harness rebuilt the jar in place
+  while the worker ran from it; the worker's dispatch loop died from an escaping
+  Throwable and the process stayed alive and idle with no log (thread dump: idle
+  dispatcher, no HTTP threads). Its shutdown log later showed
+  java.lang.NoClassDefFoundError: org/springframework/util/ConcurrentReferenceHashMap$Values.
+  Fix: WorkerLifecycle logs "Worker dispatch loop stopped unexpectedly" and exits
+  with status 1; lease recovery resumes the work. Tests: WorkerLifecycleTest
+  (Error -> fatal-exit hook once; RuntimeException -> keeps polling; stop() -> no
+  hook). Red first: the Error case failed. README now says to stop the API and
+  worker before rebuilding, with a troubleshooting row.
+F1-F6 (DEMO.md wording, fixed): runs show "queued" right after a trigger (wait
+  and re-run); use in-app navigation (a URL or reload clears the token); repeat
+  approval only via the API (decided items leave the inbox); add `echo` after the
+  world reset; outage drill may show one or two failed attempts; schema drill
+  needs a port override if 9001 is taken. The corrected reset block was re-run.
+
+Automated tests after both fixes (repository, not the copy):
+  ./gradlew --gradle-user-home .gradle/user-home --no-daemon --offline test bootJar testcontainersTest
+  exit 0; test 231 tests (224 + 7 new), 0 failures/errors/skips;
+  testcontainersTest 32 tests, 0 failures/errors/skips.
+
+Cleanup: all processes started by this task stopped with SIGINT (Java 130, npm 1,
+mocks 0); API and worker logs 0 ERROR lines; relay-verify86 volume and network
+removed; test secrets deleted from the copy; browser tab closed. The user's
+relay_mysql_data volume and their provider process (PID 76536) were not touched.

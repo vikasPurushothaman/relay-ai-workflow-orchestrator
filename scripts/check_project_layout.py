@@ -34,7 +34,7 @@ def validate(backend, frontend):
         assert b[key] == '', f'{key} must be explicitly configured locally'
     assert b['RELAY_AI_MODE'] == 'mock-http', 'No real-provider default'
     assert b['RELAY_DB_URL'] == 'jdbc:mysql://localhost:3306/relay'
-    assert b['RELAY_ALLOWED_ORIGINS'] == 'http://localhost:5173'
+    assert b['RELAY_ALLOWED_ORIGINS'] == 'http://localhost:5173,http://127.0.0.1:5173'
     assert b['MOCK_WORLD_URL'] == b['RELAY_HTTP_ALLOWED_ORIGINS'] == 'http://localhost:9210'
     assert b['RELAY_AI_BASE_URL'] == 'http://localhost:9001'
     assert f['VITE_RELAY_API_BASE_URL'] == 'http://localhost:8080'

@@ -12,6 +12,8 @@ import org.springframework.web.filter.CorsFilter;
 
 public final class ManagementCors {
     private ManagementCors() {}
+    /** Both loopback spellings of the Vite dev console; its proxy forwards the browser Origin. */
+    public static final String DEFAULT_ORIGINS="http://localhost:5173,http://127.0.0.1:5173";
     public static List<String> origins(String value) {
         var result=new ArrayList<String>();
         if (value.isBlank()) return List.of();

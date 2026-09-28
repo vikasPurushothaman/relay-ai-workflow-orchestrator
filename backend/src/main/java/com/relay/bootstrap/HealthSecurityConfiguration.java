@@ -25,7 +25,7 @@ public class HealthSecurityConfiguration {
                 { if (api) com.relay.security.ManagementTokenFilter.deny(response,401);
                   else response.setStatus(HttpStatus.UNAUTHORIZED.value()); };
         if (api) http.addFilterAt(com.relay.security.ManagementCors.filter(
-                environment.getProperty("RELAY_ALLOWED_ORIGINS", "http://localhost:5173")), org.springframework.web.filter.CorsFilter.class);
+                environment.getProperty("RELAY_ALLOWED_ORIGINS", com.relay.security.ManagementCors.DEFAULT_ORIGINS)), org.springframework.web.filter.CorsFilter.class);
         if (api) http.addFilterBefore(new com.relay.security.ManagementTokenFilter(environment.getRequiredProperty("RELAY_DEMO_TOKEN")),
                 org.springframework.security.web.authentication.AnonymousAuthenticationFilter.class);
         return http

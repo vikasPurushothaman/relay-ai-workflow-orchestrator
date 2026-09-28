@@ -825,9 +825,10 @@ the session. Disconnect (or Cancel while connecting) aborts pending requests and
 focus to token entry. Protected401 clears the session; old responses cannot restore it.
 Never put the management token into a VITE variable. There is no automatic mutation retry.
 
-API `RELAY_ALLOWED_ORIGINS` defaults to `http://localhost:5173`; specify comma-separated
-exact origins if needed, e.g. `http://localhost:5173,http://127.0.0.1:4173` for production
-preview. Do not add a trailing slash. A blank value disables cross-origin access.
+API `RELAY_ALLOWED_ORIGINS` defaults to `http://localhost:5173,http://127.0.0.1:5173` (task 8.6:
+the dev proxy forwards the browser origin, so both addresses of the dev console must be
+allowed for approve/reject/cancel); specify comma-separated exact origins if needed, e.g.
+`http://localhost:5173,http://127.0.0.1:5173,http://127.0.0.1:4173` for production preview. Do not add a trailing slash. A blank value disables cross-origin access.
 Restart your API after changing this setting. The Vite development proxy uses the
 browser's own origin; production preview calls `VITE_RELAY_API_BASE_URL` directly and
 needs its exact origin allowed. A browser CORS failure can appear as a network error.
@@ -1037,6 +1038,8 @@ Gradle tests set the same properties at JVM startup. Programmatic embedded launc
 set them before constructing any HTTP client; the supported runtime is the packaged main.
 
 ## Phase5 AI and human control
+
+**Current reference (task 8.4):** mock and real provider configuration, credential handling and error codes are consolidated in [AI_PROVIDERS.md](AI_PROVIDERS.md). The Phase5 notes below are kept as the dated history of the provider choice.
 
 **Current provider:** user-selected OpenRouter, configured and live-verified2026-09-28.
 See OpenRouter setup below. Earlier direct-OpenAI quota diagnostics are historical;

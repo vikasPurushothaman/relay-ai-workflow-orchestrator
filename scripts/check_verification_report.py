@@ -5,11 +5,14 @@ import re
 
 ROOT = Path(__file__).resolve().parents[1]
 DOC = ROOT / 'docs/VERIFICATION_REPORT.md'
-EVIDENCE = [ROOT / 'docs/phase7-verification.txt', ROOT / 'docs/duplication-check-results.txt']
+EVIDENCE = [ROOT / 'docs/phase7-verification.txt', ROOT / 'docs/duplication-check-results.txt',
+            ROOT / 'docs/phase8-startup-verification.txt', ROOT / 'docs/phase8-demo-verification.txt',
+            ROOT / 'docs/phase8-final-tests.txt', ROOT / 'docs/phase8-secrets-check.txt']
 
 SECTIONS = ('Summary', 'Environment', 'Automated tests (7.7)', 'Contract and scenarios (7.1, 7.2)',
             'Crash and recovery evidence (7.3, 7.4)', 'Failure handling (7.5)', 'Safety controls (7.6)',
-            'Fresh startup and seeding (7.8)', 'Failures found during verification', 'Real-provider usage',
+            'Fresh startup and seeding (7.8)', 'Delivery verification (Phase 8)', 'Requirement coverage',
+            'Failures found during verification', 'Real-provider usage',
             'Known limitations', 'Not verified or out of scope', 'Reproducing')
 # Report phrase -> text that must appear in the evidence for that claim.
 CLAIMS = {
@@ -27,6 +30,11 @@ CLAIMS = {
     '`created=4, preserved=0`': 'created=4, preserved=0',
     '`created=0, preserved=4`': 'created=0, preserved=4',
     'stopped the run at exactly 12/12': 'check_order, 12/12',
+    '371 automated tests, 0 failures': 'Total executed in this run: 371 automated tests, 0 failures',
+    '231 tests, 0 failures, 0 errors, 0 skipped': '231 tests, 0 failures, 0 errors, 0 skipped',
+    '2071 reported tokens': '= 2071',
+    '"executed: 3, replays absorbed: 0"': 'executed: 3, replays absorbed: 0',
+    'real local secret values checked against files and history: 0 occurrences': 'real local secret values checked against files and history: 0 occurrences',
 }
 LIMITS = ('Exactly-once depends on the receiver', 'Timeouts are ambiguous', 'billed twice', 'One active worker',
           'single samples', 'Payload-controlled recipients', 'replies in prose', 'Latent clock skew',
@@ -87,6 +95,8 @@ def main():
         ('missing section', '\n## Real-provider usage\n', '\n## Provider notes\n'),
         ('removed limitation', 'Latent clock skew', 'Clock notes'),
         ('placeholder', '## Summary\n', '## Summary\n\nTODO\n'),
+        ('changed Phase 8 total', '371 automated tests, 0 failures', '372 automated tests, 0 failures'),
+        ('missing coverage section', '\n## Requirement coverage\n', '\n## Coverage\n'),
         ('missing summary row', '| 7.5 |', '| 7.x |'),
     ]
     for label, old, new in mutations:

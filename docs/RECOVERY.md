@@ -1,6 +1,10 @@
 # Relay recovery protocol
 
-Task 1.8, 2026-09-25. **Design only; SQL and runtime behavior are not verified.** Sources: [PDF evidence](source-review/brief.txt), [pack data model](source-review/pack/docs/DATA_MODEL.md), [API contract](source-review/pack/docs/API_CONTRACT.md), [guide](source-review/pack/docs/IMPLEMENTATION_GUIDE.md), [mock world](source-review/pack/scripts/mock_world.py), [architecture](ARCHITECTURE.md), [data model](DATA_MODEL.md), [states](STATE_TRANSITIONS.md), [semantics](WORKFLOW_SEMANTICS.md), [requirements](REQUIREMENTS.md), [roadmap](../PROJECT_PLAN.md). This completes the protocol deferred by tasks 1.4–1.7; migrations and Java implementation remain later phases.
+## Current status
+
+**Final as of task 8.2 (2026-09-28): the protocol below is implemented and verified**, including boundaries B01–B07, the fenced claim/renew/complete SQL, retry intent and backoff (1000/2000 ms defaults, `Retry-After` honoured for 429/503), one AI schema repair, recovery cases C01–C10 and the cases K01–K12 below. Evidence: real-MySQL lock/fence/rollback/recovery tests (EngineMySqlTest, HumanAiMySqlTest), a packaged worker killed after a real effect (Phase 4), and in Phase 7 two live `kill -9` drills — during the durable delay and after the shipment was sent but before completion was recorded — plus failure injection (outage, flaky and slow world, provider down/429/timeout, malformed output). Every drill ended with one intended effect per key at the mock world. See [VERIFICATION_REPORT.md](VERIFICATION_REPORT.md), [Phase 4](phase4-verification.txt), [Phase 7](phase7-verification.txt) and [duplication checker results](duplication-check-results.txt). The idempotency assumptions this depends on are consolidated in **Idempotency assumptions** below.
+
+The remaining sections are the task 1.8 design record, kept for traceability, with statements that later work made false corrected in place. Design record: Task 1.8, 2026-09-25, written as design only, before SQL or runtime behaviour was verified. Sources: [PDF evidence](source-review/brief.txt), [pack data model](source-review/pack/docs/DATA_MODEL.md), [API contract](source-review/pack/docs/API_CONTRACT.md), [guide](source-review/pack/docs/IMPLEMENTATION_GUIDE.md), [mock world](source-review/pack/scripts/mock_world.py), [architecture](ARCHITECTURE.md), [data model](DATA_MODEL.md), [states](STATE_TRANSITIONS.md), [semantics](WORKFLOW_SEMANTICS.md), [requirements](REQUIREMENTS.md), [roadmap](../PROJECT_PLAN.md). This completes the protocol deferred by tasks 1.4–1.7; migrations and Java implementation remain later phases.
 
 ## Guarantees and limits
 
@@ -10,7 +14,7 @@ MySQL domain state plus queue intent commit together. No network call inside a d
 
 ## Configuration and durable policy
 
-These are selected recovery defaults; only RELAY_DB_TX_TIMEOUT_MS is bound in bootstrap as of task 2.5 (1000..60000 ms for deployment, default 5000). Other recovery settings and run-policy validation remain engine implementation work. Version selection is recorded in setup task 2.2. Accepting a run copies the effective settings below (except polling) into immutable `runs.execution_policy` JSON with policy_version=1. Changing environment defaults affects new runs only. Claiming uses the stored policy; unsupported/invalid policy stops that job from dispatching and surfaces an operational error, never silently replaces it. The API acceptance service validates policy before writing a run.
+These recovery defaults are implemented. RELAY_DB_TX_TIMEOUT_MS is bound in bootstrap (1000..60000 ms, default 5000); the other settings are read by `ExecutionPolicy`, which rejects an invalid or unsafe combination (including the lease inequality below) as "Invalid execution policy". Version selection is recorded in setup task 2.2. Accepting a run copies the effective settings below (except polling) into immutable `runs.execution_policy` JSON with policy_version=1. Changing environment defaults affects new runs only. Claiming uses the stored policy; unsupported/invalid policy stops that job from dispatching and surfaces an operational error, never silently replaces it. The API acceptance service validates policy before writing a run.
 
 | Setting | Default | Meaning |
 | --- | --- | --- |
@@ -48,7 +52,7 @@ B03 may first allocate/resolve a step without an outbound invocation when valida
 
 ## Indexed claim and ownership SQL
 
-Illustrative named-parameter SQL, to translate into the selected JDBC/JPA adapter and test on MySQL in 3.10/4.3. These statements have not been run. Use two scans, index I06 `(status, available_at, run_id)` and I07 `(status, lease_until, run_id)`, alternating ready/recovery opportunities so neither starves. Fetch at most 32 candidates per scan; try each once before polling again.
+Named-parameter SQL as designed; `EngineStore` implements these guards with `JdbcTemplate`, tested on MySQL in 3.10/4.3–4.14 (index selection included). Use two scans, index I06 `(status, available_at, run_id)` and I07 `(status, lease_until, run_id)`, alternating ready/recovery opportunities so neither starves. Fetch at most 32 candidates per scan; try each once before polling again.
 
 ```sql
 SELECT run_id FROM queue_jobs
@@ -107,7 +111,7 @@ For the upcoming retry number k=retry_count+1, persist delay_ms=min(RELAY_RETRY_
 | Abandoned running attempt | uncertain; recovery retry if budget and no cancellation, otherwise fail/cancel with unknown-effect evidence. |
 | Database outage/deadlock | Database reconciliation/transaction retry, not a new remote invocation or consumed node retry. |
 
-For HTTP 429/503 with a valid Retry-After, schedule no earlier than both exponential backoff and the server hint (integer seconds or HTTP date interpreted relative to database UTC). Persist that due time; it may exceed the exponential ceiling, which only caps locally generated backoff. Ignore malformed/past hints, clamp negative wait to zero, and fail clearly if a future timestamp cannot fit storage. Header parsing gets adapter tests in 4.9/5.9. Other provider-specific retry signals may only map into this documented classification, not create an unbounded hidden retry loop.
+For HTTP 429/503 with a valid Retry-After, schedule no earlier than both exponential backoff and the server hint (integer seconds or HTTP date interpreted relative to database UTC). Persist that due time; it may exceed the exponential ceiling, which only caps locally generated backoff. Ignore malformed/past hints, clamp negative wait to zero, and fail clearly if a future timestamp cannot fit storage. Header parsing is covered by HttpTransportTest and the engine MySQL tests. Other provider-specific retry signals may only map into this documented classification, not create an unbounded hidden retry loop.
 
 Exhaustion records retry_exhausted with node, prepared attempt count and last cause; no further invocation. If the last attempt was uncertain, retain unknown-effect evidence even though the run is failed. Cancellation has precedence and never retries to discover whether a cancelled effect occurred. External effects cannot be undone by changing local status.
 
@@ -146,9 +150,24 @@ For the supported post-effect drill, keep mock world alive, use its normal zero-
 
 Require successful slow-fulfillment run plus three intended successful non-replayed effects: confirmation email, shipment and shipped email, each with nonempty persisted key; replay ledger entries may exist. Run supplied duplication checker as supplementary evidence; an empty ledger passing is insufficient. Legitimate repeated loop effects have distinct sequence keys even if payloads match. Cancellation/exhaustion after uncertain remote execution may leave effects without successful local completion; preserve that evidence. Real/provider exactly-once is not promised.
 
+## Idempotency assumptions
+
+Final as of task 8.2. This is the complete set of assumptions Relay makes about repeated work; each is implemented and was verified as cited.
+
+1. **Outbound action key.** Every external side effect (non-GET `http_request`, `notify`, `order_action`) gets the key `{run_id}:{step_sequence}`, persisted with the frozen request before the first send (B03). Every retry and every recovery replay of that step sends the same key, method, URL, business headers and body. A new loop visit is a new step sequence and so a new key. Keys never include attempt or generation numbers. Evidence: the 7.4 drill's keys match steps 1, 3 and 4 of its run ([duplication-check-results.txt](duplication-check-results.txt)).
+2. **Calls without a key.** GET requests, condition/delay/approval steps and AI provider calls carry no key; GET is assumed safe to repeat.
+3. **Authors cannot set the key.** A workflow-authored `Idempotency-Key` header is rejected at publish (`PublishValidator`) and at dispatch (`DeterministicNodes`); only the engine attaches it (`HttpTransport`).
+4. **Receiver requirement.** One intended effect per key requires the receiver to execute a key once and replay the original result for repeats, for as long as Relay might resend (up to the retry budget after a lease expiry). The supplied mock world does this in memory: its cache is lost if it restarts, and overlapping same-key requests are not atomic. Hence one worker, the old worker stopped before recovery, and the world kept running. A receiver that ignores the key can duplicate an effect in the crash window. Evidence: 7.3 Drill B — the shipment was sent, the worker was killed before completion was recorded, and recovery resent it with the same key: 1 executed plus replays ([phase7-verification.txt](phase7-verification.txt)).
+5. **Timeouts are ambiguous.** A timed-out call may still execute on the receiver. Relay records the attempt as failed or uncertain and retries with the same key; it never reports the effect as not having happened. Evidence: 7.5 W5 — the run failed `retry_exhausted` after three timeouts while the world executed once and replayed twice.
+6. **No resend after cancellation.** If cancellation is requested while an attempt's outcome is unknown, recovery marks it uncertain and cancels without resending (C08).
+7. **AI calls are not idempotent.** A provider retry after a timeout or lost response may be processed and billed twice. The frozen request (provider, model, prompt, repair prompt) is reused, and usage that may have been lost is flagged incomplete rather than guessed.
+8. **Inbound triggers are not deduplicated.** Each accepted manual or webhook call creates a new run; an inbound `Idempotency-Key` is not honoured. A client that retries after losing a `202` may create a second run.
+9. **Human decisions and cancellation.** The first committed decision wins; every repeat, identical or not, returns 409. Repeated cancellation while pending returns 202 and keeps the first request; after the run is final it returns 409.
+10. **Seeds and workflow writes.** Seed loading inserts only missing IDs and never overwrites. Creating an existing workflow ID returns 409; publishing an unchanged workflow again returns 200 and keeps `published_at`.
+
 ## Verification roadmap
 
-All runtime tests below are **not run**. Prerequisites: implemented schema/API/worker, Testcontainers MySQL with barriers/fault hooks, controllable clock/transport, unchanged live mocks for drill. Document arithmetic checks cannot demonstrate SQL correctness.
+Design-time record (task 1.8), as written then: All runtime tests below are **not run**. They have since been implemented and pass (see Current status). Prerequisites: implemented schema/API/worker, Testcontainers MySQL with barriers/fault hooks, controllable clock/transport, unchanged live mocks for drill. Document arithmetic checks cannot demonstrate SQL correctness.
 
 | Case | Inputs/actions | Expected outcome / owners |
 | --- | --- | --- |
@@ -165,7 +184,7 @@ All runtime tests below are **not run**. Prerequisites: implemented schema/API/w
 | K11 | Live delay and controlled post-response kill drills, empty-ledger negative control, receiver reset/overlap limitation. | Three intended effects and terminal success plus checker output; no broader guarantee claimed. Tasks 7.3, 7.4; V10, V21. |
 | K12 | Timeout/read hang, 429 Retry-After, invalid config, recovery at cap, wrong gate, graceful shutdown. | Finite calls, persisted due time, rejected unsafe config, existing visit reused; no unauthorized continuation. Tasks 4.9, 4.12, 4.13, 5.4; V09, V11, V13, V16. |
 
-Run `python3 scripts/check_recovery.py` plus seven prior design checkers and supplied pack validator. New checks inspect boundaries/SQL guards/schema links and calculate lease/retry examples; mutated copies must fail. Manual K01–K12 walkthroughs supplement them. Evidence: [recovery-verification.txt](recovery-verification.txt). No API routes changed; [API documentation](../API_DOCUMENTATION.md) remains planned. D01 resolved on 2026-09-28 (preserve supplied graph and enforce approval gates). Next task 1.9 is console design. Keep all work local; never push or publish.
+Run `python3 scripts/check_recovery.py` plus seven prior design checkers and supplied pack validator. New checks inspect boundaries/SQL guards/schema links and calculate lease/retry examples; mutated copies must fail. Manual K01–K12 walkthroughs supplement them. Evidence: [recovery-verification.txt](recovery-verification.txt). No API routes changed in task 1.8; routes are documented in [API documentation](../API_DOCUMENTATION.md). D01 resolved on 2026-09-28 (preserve supplied graph and enforce approval gates). Keep all work local; never push or publish.
 
 ## Implementation status after Phase 4
 
@@ -184,9 +203,9 @@ The replacement replays the frozen request with the same key and the receiver re
 one original effect. See [Phase4 evidence](phase4-verification.txt). Historical design
 statements above describe task1.8's status; they are not the current verification result.
 
-B05/B06 human decisions/cancellation, AI repair/usage and their Phase5-specific recovery
-cases remain pending. AI/approval handlers fail explicitly for now; sensitive actions
-already fail closed without earlier same-run approved evidence. No multi-worker support
+At the end of Phase4, B05/B06 human decisions/cancellation, AI repair/usage and their
+Phase5-specific recovery cases were not yet implemented; Phase5 added them (below). Sensitive
+actions already failed closed without earlier same-run approved evidence. No multi-worker support
 or arbitrary-receiver exactly-once guarantee is added. Database connection/driver limits
 remain deployment bootstrap settings in addition to the frozen run recovery policy.
 
@@ -207,4 +226,14 @@ for approval, complaint/question follows notification, and always block unapprov
 actions. Earlier design-stage statements about an open discrepancy are historical. No
 canonical pack bytes or seed graphs were changed. See [API contracts](../API_DOCUMENTATION.md),
 [setup](SETUP.md) and [actual evidence](phase5-verification.txt).
-Run-read/trace projections and interactive console data remain Phase6.
+
+### Phase6 and Phase7 update (2026-09-28)
+
+Phase6 added read-only run/trace projections that show attempts, causes, uncertain
+outcomes, retry due times and idempotency keys; they never drive execution. Phase7 ran the
+live drills summarized in Current status. No protocol change was needed.
+
+Task 8.6 hardening: if anything escapes the worker's dispatch loop (for example a class-loading
+`Error` after the jar was replaced under a running worker), the worker logs `Worker dispatch loop
+stopped unexpectedly` and exits with status 1 instead of staying alive and idle. Its abandoned
+attempt is then recovered by lease expiry like any other crash (`WorkerLifecycleTest`).
