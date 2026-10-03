@@ -43,7 +43,7 @@ public final class LaunchEnvironmentPostProcessor implements EnvironmentPostProc
         if (mode.equals("api")) {
             String seeds=env.getProperty("RELAY_LOAD_SEEDS","true");
             if(!seeds.equals("true") && !seeds.equals("false")) throw invalid("RELAY_LOAD_SEEDS","must be true or false");
-            com.relay.security.ManagementCors.origins(env.getProperty("RELAY_ALLOWED_ORIGINS", "http://localhost:5173"));
+            com.relay.security.ManagementCors.origins(env.getProperty("RELAY_ALLOWED_ORIGINS", com.relay.security.ManagementCors.DEFAULT_ORIGINS));
             String token = required(env, "RELAY_DEMO_TOKEN");
             if (!token.matches("[A-Za-z0-9\\-._~+/]+=*")) {
                 throw invalid("RELAY_DEMO_TOKEN", "must use HTTP bearer-token characters without whitespace");

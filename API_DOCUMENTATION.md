@@ -1,18 +1,14 @@
 # Relay API Documentation
 
-## Implementation status
+## Current status
 
-Tasks 2.4–2.5 implement the three health probes and API/worker bootstrap below. Workflow draft CRUD, publication, manual/webhook triggers, approval decisions, cancellation, run list/detail (task6.1) and redacted run trace payloads (task6.2) are implemented; the read-and-operate console consumes them (tasks6.3–6.12). Their fixed contracts are recorded in [requirements](docs/REQUIREMENTS.md) and will be implemented in later tasks.
+**Final as of task 8.2 (2026-09-28).** All 16 routes in the [route index](#route-index) are implemented and verified by automated tests; there are no planned or partially implemented routes. Health probes and API/worker bootstrap come from tasks 2.4–2.5. Workflow draft CRUD, publication, manual/webhook triggers, approval decisions, cancellation, run list/detail (task6.1) and redacted run trace payloads (task6.2) are implemented; the read-and-operate console consumes them (tasks6.3–6.12). The fixed routes of the supplied contract pass the unmodified pack smoke test (28 passed, 0 failed), and the whole API was exercised end to end in Phase 7. Evidence: [verification report](docs/VERIFICATION_REPORT.md), [Phase 6](docs/phase6-verification.txt) and [Phase 7](docs/phase7-verification.txt) results. The read-and-operate console uses these routes ([console demo](docs/CONSOLE_DEMO.md)); browser paths under `/console` are UI navigation, not backend routes.
 
-Update this file whenever a route is added, changed, or removed. Planned behavior must be clearly distinguished from implemented and verified behavior.
+This file was built task by task. Each section below names the task that introduced it; a later section supersedes an earlier one where they differ, and statements about work "remaining" in an earlier task are historical. Summaries for the whole API: [Idempotency and duplicate requests](#idempotency-and-duplicate-requests) and [Known limitations](#known-limitations).
 
-Lifecycle decisions are recorded in [state transitions](docs/STATE_TRANSITIONS.md), including approval closure, cancellation races and duplicate decisions. Phase5 implements human decisions and cancellation; their route contracts appear below.
+Update this file whenever a route is added, changed, or removed, and keep planned behaviour clearly separate from implemented and verified behaviour.
 
-Planned definition validation, draft/publish eligibility, templates and step caps are specified in [workflow semantics](docs/WORKFLOW_SEMANTICS.md). No routes have been added by this design task.
-
-Planned persistence, acknowledgement, retry and uncertain-outcome rules are in [recovery protocol](docs/RECOVERY.md). Phase4 implements durable worker recovery; Phase5 extends it to AI repair and human control.
-
-Planned screen data requirements and fixed/flexible API dependencies are listed in [console design](docs/CONSOLE.md). The implemented console and the verified API demo commands are described in [console demo](docs/CONSOLE_DEMO.md). Browser paths under /console are UI navigation, not implemented backend routes. Full projection/pagination contracts remain route implementation work.
+Related design: [state transitions](docs/STATE_TRANSITIONS.md) (approval closure, cancellation races, duplicate decisions), [workflow semantics](docs/WORKFLOW_SEMANTICS.md) (validation, templates, step caps), [recovery protocol](docs/RECOVERY.md) (persistence, acknowledgement, retry, uncertain outcomes, idempotency), [console design](docs/CONSOLE.md).
 
 Task 2.5 requires `RELAY_MODE=api` for the database-backed HTTP server.
 `RELAY_MODE=worker` creates a non-web process with no health routes or listener.
@@ -23,24 +19,56 @@ not return HTTP errors. See [launch instructions](docs/SETUP.md#api-and-worker-l
 
 ## Route index
 
+Every route is **Verified**: its automated tests pass in the latest full run (224 unit and 32 real-MySQL tests, task 7.7) and it was exercised against a live stack in Phase 7. "Task" names where it was introduced.
+
 | Method | Path | Purpose | Implementation status | Tests |
 | --- | --- | --- | --- | --- |
-| GET | /actuator/health | Aggregate process/dependency status | Verified in scaffold profile | [HealthEndpointsTest](backend/src/test/java/com/relay/bootstrap/HealthEndpointsTest.java) |
-| GET | /actuator/health/liveness | Process liveness | Verified including failure/recovery | Same test class |
-| GET | /actuator/health/readiness | Ability to accept work | Verified unavailable without DB | Same test class |
-| GET | /workflows | List draft/published summaries | Task3.6 | WorkflowApiMySqlTest |
-| POST | /workflows | Create a draft | Task3.6 | WorkflowApiMySqlTest |
-| GET | /workflows/{workflowId} | Read current draft with webhook secret removed | Task3.6 | WorkflowApiMySqlTest |
-| PUT | /workflows/{workflowId} | Replace draft definition | Task3.6 | WorkflowApiMySqlTest |
-| POST | /workflows/{workflowId}/publish | Validate and freeze current draft | Task3.8 | PublicationMySqlTest |
-| POST | /workflows/{workflowId}/trigger | Accept manual run | Task4.1 | EngineMySqlTest |
-| POST | /hooks/{workflowId} | Accept webhook run | Task4.1 | EngineMySqlTest |
-| GET | /approvals | List approval requests by status (workflow_id/created_at added in 6.10) | Task5.2, 6.10 | HumanAiMySqlTest |
-| POST | /approvals/{id}/approve | Approve and resume or finish | Task5.2–5.3 | HumanAiMySqlTest |
-| POST | /approvals/{id}/reject | Reject and cancel the run | Task5.2–5.3 | HumanAiMySqlTest |
-| POST | /runs/{id}/cancel | Request cancellation | Task5.11 | HumanAiMySqlTest |
-| GET | /runs | List runs newest first with filters and cursor paging | Task6.1 | RunQueryMySqlTest, RunQueryTest |
-| GET | /runs/{runId} | Run status and ordered, redacted step trace (paged) | Task6.1–6.2 | RunQueryMySqlTest, RunQueryTest, TraceRedactorTest |
+| GET | /actuator/health | Aggregate process/dependency status | Verified (task 2.4) | HealthEndpointsTest |
+| GET | /actuator/health/liveness | Process liveness | Verified (task 2.4, 2.9), including failure/recovery | HealthEndpointsTest |
+| GET | /actuator/health/readiness | Ability to accept work | Verified (task 2.4, 2.9), 503 without DB | HealthEndpointsTest |
+| GET | /workflows | List draft/published summaries | Verified (task 3.6) | WorkflowApiMySqlTest |
+| POST | /workflows | Create a draft | Verified (task 3.6) | WorkflowApiMySqlTest |
+| GET | /workflows/{workflowId} | Read current draft with webhook secret removed | Verified (task 3.6, 3.8) | WorkflowApiMySqlTest |
+| PUT | /workflows/{workflowId} | Replace draft definition | Verified (task 3.6) | WorkflowApiMySqlTest |
+| POST | /workflows/{workflowId}/publish | Validate and freeze current draft | Verified (task 3.8) | PublicationMySqlTest |
+| POST | /workflows/{workflowId}/trigger | Accept manual run | Verified (task 4.1) | EngineMySqlTest |
+| POST | /hooks/{workflowId} | Accept webhook run | Verified (task 4.1) | EngineMySqlTest |
+| GET | /approvals | List approval requests by status (workflow_id/created_at added in 6.10) | Verified (task 5.2, 6.10) | HumanAiMySqlTest |
+| POST | /approvals/{id}/approve | Approve and resume or finish | Verified (task 5.2–5.3) | HumanAiMySqlTest |
+| POST | /approvals/{id}/reject | Reject and cancel the run | Verified (task 5.2–5.3) | HumanAiMySqlTest |
+| POST | /runs/{id}/cancel | Request cancellation | Verified (task 5.11) | HumanAiMySqlTest |
+| GET | /runs | List runs newest first with filters and cursor paging | Verified (task 6.1, 6.13) | RunQueryMySqlTest, RunQueryTest |
+| GET | /runs/{runId} | Run status and ordered, redacted step trace (paged) | Verified (task 6.1–6.2) | RunQueryMySqlTest, RunQueryTest, TraceRedactorTest |
+
+Test classes are under `backend/src/test/java/com/relay/` (`bootstrap/`, `api/`, `engine/`).
+
+## Idempotency and duplicate requests
+
+What repeating a request does, per route family. The full engine-side model (outbound keys, receiver assumptions, timeouts) is in [recovery: idempotency assumptions](docs/RECOVERY.md#idempotency-assumptions).
+
+| Request | Repeating it | Guidance |
+| --- | --- | --- |
+| Health and all `GET` routes | Safe; no state change | Repeat freely |
+| `POST /workflows` | Same ID again → 409 | After a lost response, `GET` the ID before retrying |
+| `PUT /workflows/{workflowId}` | Full replacement; competing edits → 409 | Reread after 409, then decide |
+| `POST /workflows/{workflowId}/publish` | Unchanged repeat → 200, keeps `published_at`; stale revision → 409 | Reread after 409 |
+| `POST /workflows/{workflowId}/trigger`, `POST /hooks/{workflowId}` | **Not deduplicated:** every accepted call creates a new run; an inbound `Idempotency-Key` header is not honoured | After a lost `202`, check `GET /runs?workflow_id=…` before retrying |
+| `POST /approvals/{id}/approve`, `/reject` | First decision wins; any repeat, identical or opposite → 409 | Refresh the approval after a timeout or 409 |
+| `POST /runs/{id}/cancel` | While cancellation is pending: accepted, first request metadata kept. After the run is final → 409 | Read the run after 409 |
+
+Workflow step side effects are separate: within one accepted run each external action carries a stable engine key, so worker retries and crash recovery do not duplicate effects at an idempotency-aware receiver.
+
+## Known limitations
+
+API-relevant limitations. The canonical list, with evidence, is [Known limitations in the verification report](docs/VERIFICATION_REPORT.md#known-limitations).
+
+- **Single management token.** One bearer token (`RELAY_DEMO_TOKEN`) grants every management action and is recorded as `demo-operator`; there are no user accounts, roles or per-run permissions. The API binds to 127.0.0.1 without TLS.
+- **No trigger deduplication.** Retrying a trigger after a lost response can create a second run (see above).
+- **Exactly-once depends on the receiver.** Workflow side effects are at-least-once with stable keys; a receiver that ignores `Idempotency-Key` may see a resend after an uncertain outcome, and a timed-out call may still have executed.
+- **Cancellation is cooperative.** An in-flight step may finish before the run becomes `cancelled`; completed external effects are not reversed.
+- **One active worker.** After a worker crash, recovery waits for the lease (default 60 s).
+- **Redaction edge.** Webhook secrets shorter than 8 characters are protected by key-name rules and by never returning the snapshot, not by substring redaction.
+- **Out of scope:** schedules/cron, numbered workflow versions, replay of failed steps, and the natural-language compiler.
 
 ## Shared API conventions
 
@@ -120,7 +148,7 @@ never returned by these health responses.
 - **Timeout/restart:** clients should set a finite timeout (examples use 5 seconds).
   Server absence/startup failure is connection failure, not an HTTP response.
   Packaged startup and clean stop were verified. Database timeouts, reconnects,
-  and real readiness transitions were verified in2.9; worker execution recovery remains later tasks.
+  and real readiness transitions were verified in2.9; worker execution recovery was added in Phase 4 (below).
 
 From the backend directory, after building:
 
@@ -160,7 +188,7 @@ Exact outcomes, including the initial regression and repair:
 
 ## Required entry for each route
 
-Copy this structure for each implemented route and replace every placeholder with actual contract and implementation details.
+**Template only — not a route.** Copy this structure when a route is added or changed, and replace every placeholder with actual contract and implementation details.
 
 ### METHOD /path — Route name
 
@@ -205,18 +233,18 @@ For each applicable case, record concrete input/action and expected status/body/
 
 ## Documentation change log
 
+Oldest first. Routes added in tasks 3.6–5.11 are recorded in their own sections below, each with its verification.
+
 | Date | Change | Verification |
 | --- | --- | --- |
-| 2026-09-28 | Task6.13: added nullable frozen-snapshot `max_steps` to every `GET /runs` summary item | Verified 2026-09-28: RunQueryTest serialization (unit, pass) and RunQueryMySqlTest list projection/cap/null assertions (real MySQL via Testcontainers, pass); evidence in `docs/phase6-verification.txt` |
 | 2026-09-25 | Created documentation structure; no routes implemented | Checked that no example route is presented as implemented |
-
 | 2026-09-25 | Task 2.4: three health probes and scaffold security/error behavior | 23 HTTP tests and packaged smoke check passed; MySQL readiness remains 2.9 |
-
 | 2026-09-25 | Task 2.5: API/worker availability and startup requirements | 78 automated tests and packaged startup checks passed; real MySQL verification remains 2.9. See [launch evidence](docs/launch-modes-verification.txt) |
-
 | 2026-09-28 | Task6.1: added GET /runs (filters, keyset cursor) and GET /runs/{runId} (ordered paged steps); status sentence and cancel note updated | 219 unit and 31 real-MySQL tests passed; 13 document checks passed. See [Phase6 verification](docs/phase6-verification.txt) |
-
 | 2026-09-28 | Task6.2: redacted trace payload (input, resolved input, output, error, attempts, AI usage, approval evidence, retry due) on GET /runs/{runId}; task6.10: workflow_id and created_at on GET /approvals | 223 unit and 32 real-MySQL tests passed (full run); HumanAiMySqlTest 14/14 after the approvals change. See [Phase6 verification](docs/phase6-verification.txt) |
+| 2026-09-28 | Task6.13: added nullable frozen-snapshot `max_steps` to every `GET /runs` summary item | Verified 2026-09-28: RunQueryTest serialization (unit, pass) and RunQueryMySqlTest list projection/cap/null assertions (real MySQL via Testcontainers, pass); evidence in `docs/phase6-verification.txt` |
+| 2026-09-28 | Task 8.2: final status; route index marked verified; added Idempotency and duplicate requests and Known limitations; change log made one table. No route or contract changed | `python3 scripts/check_final_docs.py` and existing document checks; results in `PROJECT_PLAN.md` task 8.2 |
+| 2026-09-28 | Task 8.6: default `RELAY_ALLOWED_ORIGINS` now `http://localhost:5173,http://127.0.0.1:5173` (defect D-8.6-1: 403 on console mutations through the dev proxy from 127.0.0.1:5173). No route or response shape changed | ManagementSecurityTest `defaultOriginsAllowBothLoopbackSpellingsOfDevConsole` (both origins, POST + preflight) and `defaultOriginsStillRejectOtherLoopbackPorts`; ManagementCorsTest `defaultCoversBothLoopbackSpellingsOfDevConsole`; results in `PROJECT_PLAN.md` task 8.6 |
 
 ## Supplied local test services — task 2.8
 
@@ -224,7 +252,7 @@ The mock world and provider are separate local test doubles, not Relay API route
 Their methods, auth, request/response behavior, side effects, failures and limitations
 are documented in [local mock HTTP reference](docs/MOCKS.md#local-mock-http-reference).
 No platform route changed in this task. Runtime checks use disposable mock processes;
-full engine/API acceptance remains outstanding.
+full engine/API acceptance was completed later (Phase 7).
 
 ## Real database startup verification — task 2.9
 
@@ -236,12 +264,12 @@ Worker starts without an HTTP service after the matching migration; absent, pend
 checksum-mismatched or future schema history fails startup. Wrong API credentials
 also fail startup rather than return an HTTP error. No new routes were added.
 Evidence: [component verification](docs/component-startup-verification.txt).
-Domain schema, execution and authenticated platform endpoints remain later tasks.
+Domain schema, execution and authenticated platform endpoints were added afterwards (tasks 3.1–6.2, below).
 
 
 ## Domain error foundation — task3.2
 
-No domain endpoint is added. Advice scoped to future com.relay.api controllers is
+No domain endpoint is added. Advice scoped to com.relay.api controllers (added from task3.6) was
 verified through test-only MVC routes, which are not packaged. Its envelope is
 `{"error":{"message":"The request is invalid.","code":"invalid_input"}}`.
 
@@ -327,7 +355,9 @@ Test handlers are absent from the production jar. Results:
 ## Management browser access — task3.4
 
 API mode accepts exact browser origins from `RELAY_ALLOWED_ORIGINS`, a comma-separated
-HTTP(S) origin list (default `http://localhost:5173`). Blank disables cross-origin
+HTTP(S) origin list (default `http://localhost:5173,http://127.0.0.1:5173` since task 8.6; before that only
+`http://localhost:5173`, which made console approve/reject/cancel fail with 403 when the dev
+console was opened at the documented `http://127.0.0.1:5173`). Blank disables cross-origin
 management access. Origins must contain only scheme, host and optional valid port;
 paths, trailing slash, credentials, query, fragment, wildcard and `null` are rejected
 at API startup. Duplicates are removed. `localhost` and `127.0.0.1` are different origins.
@@ -375,7 +405,7 @@ protected401 disconnects and aborts pending work. Session generations discard la
 responses, including old401 responses after a new connection.403 does not discard a
 confirmed session. Invalid input, missing API, conflict, throttling, server, timeout,
 network and malformed-response failures use safe messages. Mutations are never retried
-automatically. Data caches and polling remain later console tasks.
+automatically. Run-detail polling was added later (task6.8); there is no data cache.
 
 Tests: [CORS HTTP cases](backend/src/test/java/com/relay/security/ManagementSecurityTest.java),
 [origin validation](backend/src/test/java/com/relay/security/ManagementCorsTest.java),
@@ -394,7 +424,7 @@ publish-time catalog parameter, graph, template and schema validation is impleme
 nesting depth at most64. Duplicate keys at every depth, trailing JSON values, malformed
 JSON, unknown structural fields and invalid field types reject with `DefinitionException`.
 Its fixed reason and structural path omit submitted values and raw parser exceptions.
-Future routes must translate these failures to the API error envelope and enforce
+Routes translate these failures to the API error envelope (task3.6 onward) and enforce
 request byte limits before buffering; this parser is not an HTTP request-size filter.
 
 Required fields: id (nonblank,128 Unicode code points), name (nonblank,200), trigger,
@@ -485,7 +515,7 @@ as the supplied wf_* values for portable routing. Servlet/security restrictions 
 slashes and reserved path syntax still apply; these are not multi-segment ID routes.
 GET has no state changes. No request body is required; no special Accept header is needed.
 The current draft is returned even if an older publication exists. Since3.8 the detail
-also includes the separately redacted published_definition; run history remains later work. Known webhook secret is removed from definition.trigger;
+also includes the separately redacted published_definition; run history is served by `GET /runs` (task6.1). Known webhook secret is removed from definition.trigger;
 secret_configured reports its presence. Arbitrary authored node params remain in the
 definition: this is not a general-purpose scrubber for secrets embedded in user content.
 
@@ -516,7 +546,7 @@ curl -i -X PUT http://127.0.0.1:8080/workflows/wf_demo \
 These manual commands intentionally save one draft to your configured DB. Repeat POST
 expects409. PUT with a different body ID expects400. Reads of an unknown ID expect404.
 The console can now confirm Connect with an empty or populated real list; its data pages
-remain placeholders until6.x. Restart an older running API process to use the new jar.
+were built later (tasks6.3–6.12). Restart an older running API process to use the new jar.
 
 | Status | Code/meaning |
 | --- | --- |
@@ -867,7 +897,7 @@ worker process; stop the old process before starting its replacement.
 Phase5 implements AI and approval execution, approval decision routes and cancellation as
 documented below. Order actions require an approved human record at an earlier sequence
 in the same run on every attempt; absent evidence fails `approval_required` before send.
-Run-read/trace UI remains Phase6. No optional schedules, compiler or wall-clock/token caps.
+Run-read/trace UI was added in Phase6. No optional schedules, compiler or wall-clock/token caps.
 
 Tests: [pure values](backend/src/test/java/com/relay/engine/EngineValuesTest.java),
 [transport](backend/src/test/java/com/relay/engine/HttpTransportTest.java),
@@ -982,8 +1012,8 @@ Tests: [HumanAiMySqlTest](backend/src/test/java/com/relay/engine/HumanAiMySqlTes
 (real HTTP, MySQL, restart, rollback and races),
 [ManagementSecurityTest](backend/src/test/java/com/relay/security/ManagementSecurityTest.java)
 (shared auth/CORS). Exact executed commands and outcomes are in
-[Phase5 verification](docs/phase5-verification.txt). This does not claim a finished approvals
-console or run trace API; those remain Phase6.
+[Phase5 verification](docs/phase5-verification.txt). The approvals console and run trace API
+were added afterwards in Phase6.
 
 ## Run visibility — task6.1
 

@@ -1,0 +1,54 @@
+Task 9.2 — One-command local test runner (2026-10-03)
+=====================================================
+
+Runner: scripts/run_checks.py   Unit tests: scripts/test_run_checks.py
+Machine: Java 21.0.12.1, Node v24.21.0, Docker 29.4.3, Python 3.14.5.
+
+1. Runner unit tests (from scripts/)
+   python3 -m unittest test_run_checks
+   Ran 19 tests, OK.
+   Mutation check (copies in a mirrored scratch layout, real file untouched): the
+   unchanged copy passes; each injected defect is caught by its intended test:
+     Gradle without --rerun          -> test_gradle_commands_force_rerun_and_offline_only_on_request
+     stale JUnit XML not removed     -> test_stale_junit_results_are_removed_before_gradle_runs
+     zero exit with no results passes-> test_zero_exit_without_results_is_a_failure
+     service checks in docs stage    -> test_docs_stage_excludes_service_checks_and_includes_the_rest
+     non-zero exit ignored           -> test_failing_command_fails_its_stage_and_later_stages_still_run
+     overall exit always 0           -> 7 failures (stage-failure and prerequisite tests)
+
+2. Full real run (repository root, Docker running), before the 9.2 plan record was finalized
+   python3 scripts/run_checks.py
+   exit 1, 2m23s wall time
+   Stage     Status   Passed Failed    Time
+   backend   PASS        231      0     11s
+   mysql     PASS         32      0    112s
+   frontend  PASS         58      0      2s
+   browser   PASS         27      0      9s
+   scripts   PASS         42      0      5s
+   docs      FAIL         20      1      5s  scripts/check_completion.py: exit 1
+   "6 stage(s) run, 1 failed; 390 automated tests passed; 20 document checks passed"
+   The single failure was the expected completion-check assertion
+   "Task record not complete: ### Task 9.2 ... in progress" (the record was still open).
+   backend.log shows "> Task :test" executed (not UP-TO-DATE) with BUILD SUCCESSFUL;
+   the counts come from fresh JUnit XML (old results removed first).
+   390 = 231 + 32 + 58 + 27 + 42 (scripts: the 23 earlier script tests + 19 runner tests).
+
+3. Selection (real runs)
+   python3 scripts/run_checks.py --skip mysql --skip docs
+     backend 231, frontend 58, browser 27, scripts 42 PASS; mysql and docs SKIPPED,
+     "not run (by request)"; "4 stage(s) run, 0 failed; 358 automated tests passed;
+     ... not run: mysql, docs"; exit 0.
+   python3 scripts/run_checks.py --only deploy
+     argparse error "invalid choice: 'deploy'", exit 2.
+   python3 scripts/run_checks.py --only scripts   (after removing trailing spaces from
+     skipped rows) exit 0, no output line ends in a space.
+
+4. After the 9.2 record was finalized
+   python3 scripts/run_checks.py --only docs
+     docs PASS 21, 0 failed (includes check_completion.py and check_publication_guide.py);
+     "1 stage(s) run, 0 failed; ... 21 document checks passed"; exit 0.
+   git diff --check: clean.
+
+Not provoked for real: missing Java/Node/Docker/node_modules/dist and failing suites (the
+developer environment was not altered); covered by the unit tests in section 1.
+Nothing pushed or published.

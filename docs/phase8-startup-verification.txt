@@ -1,0 +1,129 @@
+Task 8.3 — README start-up sequence executed end to end (2026-09-28)
+===================================================================
+
+Purpose: run every README "Quick start" and "Shutdown and reset" command on the
+default ports from a fresh copy, as a new user would, and record what happened.
+
+Setup and user decisions
+------------------------
+- The user's four stale Relay processes held the default ports and were stopped
+  with SIGINT by PID, with the user's approval: 6721 (old scaffold-profile API,
+  :8080), 6968 (mock provider, :9001), 49478 (mock world, :9210), 49419 (Vite,
+  :5173). They were not restarted (user decision).
+- Fresh copy of the current working tree in the session scratchpad, made from
+  `git ls-files --cached --others --exclude-standard`: no build/, node_modules/,
+  .gradle/, local-data/, frontend/.env.local or dist/.
+- Deviations from the README, all deliberate:
+  1. Compose commands use `-p relay-verify83` (user decision) so the user's
+     relay_mysql_data volume is not reused; compose.yaml's `name: relay` would
+     otherwise select it.
+  2. Long-running processes started in the background with logs, not separate
+     terminals; Ctrl-C sent as SIGINT.
+  3. The API's `RELAY_MODE=api java ...` prefix was run as `exec env RELAY_MODE=api java ...`
+     (same environment) so the process PID was known.
+- No secret or token values are recorded here.
+
+Q1 Prerequisites (README "Prerequisites" check commands) — PASS
+  java -version            openjdk version "21.0.12.1" 2026-08-18
+  docker compose version   Docker Compose version v5.1.4
+  node --version (nvm use) v24.21.0, npm 11.19.0
+  python3 --version        Python 3.14.5
+
+Q2 Step 1 build — PASS
+  cd backend && ./gradlew --gradle-user-home .gradle/user-home --no-daemon test bootJar
+  BUILD SUCCESSFUL in 1m 12s (empty local Gradle cache; 74 s wall clock), exit 0
+  JUnit XML: 224 tests, 0 failures, 0 errors, 0 skipped
+  backend/build/libs/relay-backend-0.1.0.jar created (62112279 bytes)
+
+Q3 Step 2 secrets, token, MySQL — PASS
+  python3 scripts/init_mysql_secrets.py
+    -> "MySQL secret files ready in local-data/mysql; existing values preserved. No passwords printed."
+       (finding F2: the message says "existing values preserved" even on first creation)
+  (umask 077; python3 -c 'import secrets; print(secrets.token_hex(32))' > local-data/demo-token)
+  docker compose -p relay-verify83 up -d --wait --wait-timeout 180
+    -> volume relay-verify83_mysql_data created; container Healthy; exit 0 in 11 s
+  local-data/demo-token, local-data/mysql/password, root-password: mode -rw------- ;
+  local-data/mysql: drwx------ ; token is 64 lowercase hex characters.
+
+Q4 Step 3 API — PASS
+  exports RELAY_DB_URL/RELAY_DB_USER/RELAY_DB_PASSWORD/RELAY_DEMO_TOKEN as in the README
+  Log: Migrating schema `relay` to version "1 - relay schema"
+       Successfully applied 1 migration to schema `relay`, now at version v1
+       Started RelayApplication in 4.076 seconds
+       Workflow seeds: created=4, preserved=0
+  curl liveness  -> {"status":"UP"} 200
+  curl readiness -> {"status":"UP"} 200
+  Seeding runs in an ApplicationRunner (SeedStartup), which Spring completes
+  before readiness reports ACCEPTING_TRAFFIC, so readiness UP implies seeds loaded.
+
+Q5 Step 4 mocks — PASS
+  python3 scripts/run_mock.py world    -> "Relay mock world: http://127.0.0.1:9210"
+  python3 scripts/run_mock.py provider -> "Relay mock provider: http://127.0.0.1:9001"
+
+Q6 Step 5 worker — PASS
+  exports RELAY_DB_* as in the README (no token); RELAY_MODE=worker
+  Started RelayApplication in 3.241 seconds; no WARN/ERROR; 0 listening sockets.
+
+Q7 Step 6 console — PASS
+  cd frontend; source ~/.nvm/nvm.sh; nvm use -> "Now using node v24.21.0 (npm v11.19.0)"
+  npm ci -> exit 0 (1 s, npm cache warm). Warning: "fsevents@2.3.3 (install: (install
+    scripts present))" not covered by allowScripts. fsevents ships
+    node_modules/fsevents/fsevents.node prebuilt, so the skipped script is harmless
+    (finding F3; README troubleshooting row added).
+  cp -n .env.example .env.local -> VITE_RELAY_API_BASE_URL=http://localhost:8080
+  npm run dev -> "VITE v8.3.1 ready in 832 ms", Local http://127.0.0.1:5173/
+  GET /console/workflows -> 200
+  Built-in browser: entered the token from local-data/demo-token in "Management
+  token", pressed Enter -> "API access confirmed."; Workflows table lists
+  wf_expense_approval, wf_runaway, wf_slow_fulfillment, wf_support_triage, all Published.
+
+Q8 Step 7 first run — FAIL, README fixed, re-run PASS
+  As originally written (new terminal, token not exported):
+    HTTP/1.1 401 {"error":{"message":"Management authentication is required.","code":"unauthorized"}}
+  Finding F1: step 7 used $RELAY_DEMO_TOKEN, which is only exported in the API
+  terminal. Fix: step 7 now starts with
+    export RELAY_DEMO_TOKEN="$(cat local-data/demo-token)"
+  and says to run it in a new terminal at the repository root.
+  Corrected block extracted from the README and executed verbatim with bash:
+    HTTP/1.1 202 {"run_id":"run_7ba7328a260a40f09074016e05094a0e"}
+    GET /runs/{runId}: failed, error {"code":"max_steps","node_id":"check_order"},
+    steps_executed 12, max_steps 12; nodes check_order/is_shipped/hold x4.
+  Second run exercising the mock world (CONSOLE_DEMO small expense; secret read
+  from the seed fixture, not printed):
+    POST /hooks/wf_expense_approval {"amount_usd":40,...} -> 202
+    run_4d4a9242bd70455cbd43ad28a2bc88cf succeeded: is_large -> auto_ok,
+    auto_ok key run_4d4a9242bd70455cbd43ad28a2bc88cf:2
+    World ledger: exactly 1 entry, email.send, key ...:2, not replayed
+    (the runaway's GET calls create no ledger entries, as expected).
+  Console Runs page: both runs, newest first — expense Succeeded "2 of 20",
+  runaway Failed "12 of 12".
+
+Q9 Shutdown and restart — PASS
+  SIGINT to Vite, worker, API, world, provider: all stopped within 10 s; ports
+  8080/9001/9210/5173 free. API and worker logs end with the Hikari pool
+  "Shutdown completed."; 0 ERROR lines in either log. Exit codes: Java 130
+  (SIGINT), Python mocks 0, npm 1 (npm's normal code for an interrupted script;
+  Vite printed no error).
+  docker compose -p relay-verify83 down  -> network removed, volume kept
+  docker compose -p relay-verify83 up -d --wait --wait-timeout 180 -> Healthy
+  API restart (step 3 verbatim): "Schema `relay` is up to date. No migration
+  necessary."; "Workflow seeds: created=0, preserved=4"; GET /workflows -> 4;
+  GET /runs -> both earlier runs (succeeded 2 steps, failed 12 steps).
+
+Q10 Cleanup — PASS
+  API stopped with SIGINT; docker compose -p relay-verify83 down --volumes ->
+  volume and network removed; 0 relay-verify83 containers remain; ports
+  3306/8080/9001/9210/5173 free. The user's relay_mysql_data volume and
+  local-data/ in the repository are unchanged. Test secrets deleted from the
+  scratch copy. Browser tab closed.
+
+Findings
+--------
+F1 (fixed): README step 7 omitted exporting the token in the calling terminal
+   -> 401. Fixed and re-executed (Q8). Troubleshooting row added for 401 after start.
+F2 (not fixed, cosmetic): init_mysql_secrets.py prints "existing values preserved"
+   when it has just created the files. Behaviour is correct.
+F3 (documented): npm allowScripts warning for fsevents is harmless; troubleshooting row added.
+
+Document checks after the README edits: check_readme.py 16 checks passed;
+check_final_docs.py 12 checks passed; git diff --check clean.

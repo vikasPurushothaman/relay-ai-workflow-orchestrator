@@ -115,6 +115,23 @@ class ManagementSecurityTest {
         assertThat(forbidden.headers().firstValue("Access-Control-Allow-Origin")).hasValue("http://localhost:5173");
         assertThat(forbidden.body()).contains("forbidden");
     }
+    // Regression (task 8.6, D-8.6-1): the documented dev console URL is http://127.0.0.1:5173 and its proxy
+    // forwards that Origin; with RELAY_ALLOWED_ORIGINS unset, console mutations must not be refused.
+    @ParameterizedTest @ValueSource(strings={"http://127.0.0.1:5173","http://localhost:5173"})
+    void defaultOriginsAllowBothLoopbackSpellingsOfDevConsole(String origin) throws Exception {
+        var mutation=call("POST","/approvals/a/auth-probe","Origin",origin,"Authorization","Bearer "+TOKEN);
+        assertThat(mutation.statusCode()).isEqualTo(200);
+        assertThat(mutation.headers().firstValue("Access-Control-Allow-Origin")).hasValue(origin);
+        var preflight=call("OPTIONS","/approvals/a/approve","Origin",origin,
+            "Access-Control-Request-Method","POST","Access-Control-Request-Headers","authorization,content-type");
+        assertThat(preflight.statusCode()).isEqualTo(200);
+        assertThat(preflight.headers().firstValue("Access-Control-Allow-Origin")).hasValue(origin);
+    }
+    @Test void defaultOriginsStillRejectOtherLoopbackPorts() throws Exception {
+        var response=call("POST","/approvals/a/auth-probe","Origin","http://127.0.0.1:5174","Authorization","Bearer "+TOKEN);
+        assertThat(response.statusCode()).isEqualTo(403);
+        assertThat(response.body()).contains("cors_denied");
+    }
     @Test void deniedCorsOriginMethodAndHeaders() throws Exception {
         for(var response:List.of(
             call("OPTIONS","/workflows/auth-probe","Origin","http://evil.test","Access-Control-Request-Method","GET"),

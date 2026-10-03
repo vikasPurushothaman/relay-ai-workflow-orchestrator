@@ -497,3 +497,13 @@ Limits: concurrent seed loaders (two APIs starting at once) are covered by
 SeedMySqlTest (7.7 real-MySQL run), not repeated live. Only one Flyway
 migration exists, so multi-version upgrade ordering is not exercised.
 Document consistency (7.8): all 13 check scripts exit 0; git diff --check clean.
+
+
+Task 7.9 — Verification report (2026-09-28, complete)
+----------------------------------------------------
+docs/VERIFICATION_REPORT.md written from this file and
+docs/duplication-check-results.txt. python3 scripts/check_verification_report.py:
+first run failed its own summary-row check (Failures table also has 7.x rows);
+scoped to the Summary section; rerun exit 0, 12 checks including 10 mutation
+rejections. 26 further figures spot-checked against this file. All 13 existing
+document checks exit 0; git diff --check clean.

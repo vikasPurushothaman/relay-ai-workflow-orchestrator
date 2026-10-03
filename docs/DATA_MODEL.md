@@ -1,6 +1,10 @@
 # Relay persistent data model
 
-Task 1.5, 2026-09-25. **Schema and JPA mappings implemented in tasks3.1–3.2; lifecycle services remain later tasks.** This selects storage structure for Java, Spring Boot, JPA and MySQL. Flyway V1 implements this structure in task3.1; database/library versions and documented constraint support are selected in [setup task 2.2](SETUP.md); migration constraints are verified in3.1; repository/locking verification remains3.10.
+## Current status
+
+**Final as of task 8.2 (2026-09-28): the model below is implemented by Flyway `V1__relay_schema.sql` and the JPA mappings, and verified.** All six tables, their check constraints, same-run foreign keys and queue indexes are exercised by the real-MySQL suite (32 tests, task 7.7); fresh-database migration and repeatable seeding were verified with the packaged API in task 7.8 (one migration, seven tables including Flyway history). Lifecycle services (acceptance, engine, decisions, cancellation, run queries) use this schema without further migrations. Evidence: [Phase 7](phase7-verification.txt), [VERIFICATION_REPORT.md](VERIFICATION_REPORT.md). Known limitation: only one migration exists, so multi-version upgrades are not exercised.
+
+The sections below are the task 1.5 design record with implementation notes. Design record: Task 1.5, 2026-09-25. **Schema and JPA mappings implemented in tasks3.1–3.2; lifecycle services followed in Phases 4–6.** This selects storage structure for Java, Spring Boot, JPA and MySQL. Flyway V1 implements this structure in task3.1; database/library versions and documented constraint support are selected in [setup task 2.2](SETUP.md); migration constraints are verified in3.1; repository/locking verification remains3.10.
 
 Sources: [PDF evidence](source-review/brief.txt), [pack data model](source-review/pack/docs/DATA_MODEL.md), [API contract](source-review/pack/docs/API_CONTRACT.md), [implementation guide](source-review/pack/docs/IMPLEMENTATION_GUIDE.md), [catalog](source-review/pack/data/node_catalog.json), [requirements](REQUIREMENTS.md), [architecture](ARCHITECTURE.md), [roadmap](../PROJECT_PLAN.md). The pack's suggested entities are retained; separate attempts and queue ownership fields implement their required durability and trace guarantees. The guide explicitly permits sequence in keys for loop iterations.
 
@@ -239,7 +243,7 @@ are provided; required constructors create initial records. These restrictions d
 not replace service validation or protect against direct SQL.
 
 Validation covers required fields, Unicode code-point identifier bounds and numeric
-storage bounds. Full workflow schema/catalog validation remains later work. Explicit
+storage bounds. Full workflow schema/catalog validation was added in task3.7. Explicit
 summary DTOs exclude definitions, requests and credentials; entities are not API
 responses. Migration state checks remain authoritative for row-local combinations.
 
@@ -274,4 +278,4 @@ for approval, complaint/question follows notification, and always block unapprov
 actions. Earlier design-stage statements about an open discrepancy are historical. No
 canonical pack bytes or seed graphs were changed. See [API contracts](../API_DOCUMENTATION.md),
 [setup](SETUP.md) and [actual evidence](phase5-verification.txt).
-Run-read/trace projections and interactive console data remain Phase6.
+Phase6 added read-only run/trace projections over these tables; no schema change was needed.
