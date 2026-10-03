@@ -143,4 +143,4 @@ Useful for the video's resilience section. They use the mock world's own control
 
 Everything is repeatable. Before each take, reset the world ledger (Scene 0 step 4). Earlier runs stay in the database and in the console, which is harmless. For a completely fresh console, follow the destructive reset in the README (**Shutdown and reset**), then restart the API, which reloads the seeds. Keep exactly one worker running.
 
-Related: [README](../README.md), [VIDEO_SCRIPT.md](VIDEO_SCRIPT.md) (narrated recording script for the explainer video), [CONSOLE_DEMO.md](CONSOLE_DEMO.md) (console-only scenarios), [AI_PROVIDERS.md](AI_PROVIDERS.md), [RECOVERY.md](RECOVERY.md), [VERIFICATION_REPORT.md](VERIFICATION_REPORT.md).
+Related: [README](../README.md), [CONSOLE_DEMO.md](CONSOLE_DEMO.md) (console-only scenarios), [AI_PROVIDERS.md](AI_PROVIDERS.md), [RECOVERY.md](RECOVERY.md), [VERIFICATION_REPORT.md](VERIFICATION_REPORT.md).

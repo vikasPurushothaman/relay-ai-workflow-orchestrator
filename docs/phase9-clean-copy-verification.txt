@@ -1,0 +1,122 @@
+Task 9.3 Part A — Clean-copy setup verification (2026-10-03)
+===========================================================
+
+Purpose: on the final tree, verify that someone with a new clone can run every automated
+check and start and use Relay by following the README. No secret or token value is
+recorded here. Nothing was committed in the owner's repository; nothing was pushed.
+
+Isolation and deviations
+------------------------
+- Copy: `git clone --no-local` of the repository into the session scratchpad, with the
+  uncommitted working-tree files (git ls-files --cached --others --exclude-standard)
+  overlaid and committed only inside that disposable clone. Rebuilt after the parallel
+  9.4 session settled and again after the owner's commit b73b9af.
+- Compose project `relay-verify93`, so the owner's `relay_mysql_data` volume was not used.
+- Alternate ports (owner decision: no preference; the owner's own stack held MySQL 3306,
+  API 8080, worker, world 9210 and Vite 5173 and was left running untouched), using the
+  README's documented settings: RELAY_MYSQL_PORT=3307 with RELAY_DB_URL on 3307;
+  RELAY_API_PORT=8081; `run_mock.py world --port 9211` with MOCK_WORLD_URL and
+  RELAY_HTTP_ALLOWED_ORIGINS = http://localhost:9211; `run_mock.py provider --port 9002`
+  with RELAY_AI_BASE_URL; `npm run dev -- --port 5174`, VITE_RELAY_API_BASE_URL on 8081,
+  RELAY_ALLOWED_ORIGINS=http://localhost:5174,http://127.0.0.1:5174.
+- wf_runaway not triggered: the seed hard-codes http://localhost:9210, the owner's world.
+  The step cap stays covered by the real-MySQL suite run in C2 (and 7.6, 8.6).
+- Long-running processes ran in the background with logs; Ctrl-C sent as SIGINT.
+- Gradle and npm downloads ran with network access (the agent's sandbox blocks network,
+  which caused F-9.3-3 in the first attempt).
+
+C1 Copy — PASS
+  Clone file list identical to the publishable file list; absent: backend/build,
+  backend/.gradle, frontend/node_modules, frontend/dist, frontend/.env.local, local-data,
+  backend/.env.ai, tmp, *.log. `git status --short` empty after the scratch commit.
+
+C2 One-command runner on the fresh clone
+  First attempt: `python3 scripts/run_checks.py --install` exit 1 (backend, mysql,
+  frontend, browser, docs FAIL; scripts 42 PASS). Findings:
+    F-9.3-1 (fixed, runner): `npm run build` failed "Check the Relay API configuration"
+      because frontend/.env.local does not exist on a fresh clone. --install now creates
+      it from .env.example (never overwrites); without --install a missing .env.local is
+      a prerequisite failure with a hint. +2 unit tests (21 total).
+    F-9.3-2 (fixed, check): check_publication_guide.py asserted the owner's local
+      branches; a clone has no local main ("main is not an ancestor of UIENCH"). Branch
+      ancestry and origin URL are now checked only where those exist and reported as not
+      applicable elsewhere; a built-in clone-case self-check was added (10 checks).
+    F-9.3-3 (environment): Gradle wrapper download timed out inside the agent's sandbox.
+    check_completion.py failed because task records were in progress (expected).
+  Second attempt (rebuilt clone, network allowed): exit 1 in 3m07s
+    backend 231/0 (54 s, Gradle and dependencies downloaded), mysql 32/0, frontend 58/0,
+    browser 27/0, scripts 44/0; docs 19 passed, 2 failed:
+    check_completion.py (9.3 record in progress, expected) and check_demo.py:
+    F-9.3-4 (fixed, docs): "Broken link: VIDEO_SCRIPT.md". The owner's commit b73b9af
+      ignores docs/VIDEO_SCRIPT.md (kept private) while docs/DEMO.md linked to it. Owner
+      had no preference; the ignore rule is kept and the link removed from DEMO.md;
+      check_demo.py passes (12 checks).
+  392 automated tests passed on the fresh clone, 0 failed.
+
+C3 Prerequisites and README step 1 — PASS
+  openjdk 21.0.12.1; Docker Compose v5.1.4; node v24.21.0; npm 11.19.0; Python 3.14.5.
+  `./gradlew --gradle-user-home .gradle/user-home --no-daemon test bootJar` exit 0
+  (up to date after C2); backend/build/libs/relay-backend-0.1.0.jar 62112807 bytes.
+
+C4 Step 2 secrets and MySQL — PASS (after the port deviation)
+  init_mysql_secrets.py: "MySQL secret files ready ..." (F2 wording from 8.3 unchanged).
+  Token file 64 hex characters + newline; demo-token, mysql/password, root-password
+  -rw-------; local-data/mysql drwx------.
+  First `docker compose -p relay-verify93 up` on 3306: "port is already allocated"
+  (owner's relay-mysql-1). With RELAY_MYSQL_PORT=3307: container Healthy; volume
+  relay-verify93_mysql_data created.
+
+C5 Step 3 API (port 8081) — PASS
+  Log: Migrating schema `relay` to version "1 - relay schema"; Successfully applied 1
+  migration; Started RelayApplication in 4.632 seconds; Workflow seeds: created=4,
+  preserved=0. liveness {"status":"UP"} 200; readiness {"status":"UP"} 200.
+
+C6 Steps 4-5 mocks and worker — PASS
+  "Relay mock world: http://127.0.0.1:9211"; "Relay mock provider: http://127.0.0.1:9002".
+  Worker: Started RelayApplication in 3.666 seconds; 0 WARN/ERROR; 0 listening sockets.
+
+C7 Step 6 console (port 5174) — PASS
+  nvm use -> v24.21.0; npm ci exit 0 (install-scripts warning as documented in 8.3 F3);
+  .env.local present (created by the runner's --install; cp -n kept it), API URL set to
+  8081; `vite --port 5174` ready in 880 ms; GET /console/workflows 200.
+  Built-in browser: test token entered -> "API access confirmed."; Workflows lists
+  wf_expense_approval, wf_runaway, wf_slow_fulfillment, wf_support_triage, all Published.
+  (Pasting from the system clipboard does not reach the pane; the field was filled
+  directly.) A full page navigation clears the in-memory token, as documented.
+
+C8 Runs — PASS
+  Wrong secret: 401 invalid_webhook_secret, no run created.
+  40 USD expense: run_661a6d60f7264066aa75a36f3000c68c succeeded: is_large -> auto_ok,
+    key run_661a...:2.
+  250 USD expense: run_a6333a9e181c45fd94b7b3c9396ded9c waiting_approval at finance_gate;
+    approved in the console Approvals inbox (confirm step) -> "Approved by the demo
+    operator. Run is now running." -> succeeded: is_large, finance_gate, approved_notice
+    (key run_a633...:3).
+  Repeat approve through the API as documented (no body): 409 conflict. (A first try
+    with a `{}` body returned 400 invalid_input; the documented call sends no body.)
+  World ledger on 9211: exactly 2 entries, both email.send, executed, keys :2 and :3.
+  Console Runs page: both runs Succeeded, "3 of 20" and "2 of 20", newest first.
+
+C9 Shutdown and restart — PASS
+  SIGINT to Vite, worker, API, world, provider (clone PIDs found by the alternate ports
+  only): ports 8081/9211/9002/5174 free; API and worker logs 0 ERROR, 0 WARN,
+  "Shutdown completed."; Vite log 0 errors. Exit codes: Java 130, npm 1 (SIGINT), mocks 0.
+  `docker compose -p relay-verify93 down` (volume kept) then `up`: Healthy.
+  API restart: "Schema `relay` is up to date. No migration necessary."; "Workflow seeds:
+  created=0, preserved=4"; GET /workflows -> 4; GET /runs -> both runs, succeeded 3 and 2
+  steps.
+
+C10 Cleanup — PASS
+  API stopped (0 ERROR lines); `docker compose -p relay-verify93 down --volumes` removed
+  the volume and network; 0 relay-verify93 containers; only relay_mysql_data remains.
+  Alternate ports free. The owner's stack (3306, 8080, 9210, 5173) was still running and
+  never signalled. Clipboard cleared (it briefly held the clone's test token). Browser
+  tab closed. The scratch clone, including its test secrets, deleted.
+
+Result
+------
+Part A complete: the final tree runs every automated check from a fresh clone (392
+tests, 0 failures after the fixes) and starts and works by following the README, with the
+documented port changes. Four findings, three fixed in the repository (F-9.3-1, F-9.3-2,
+F-9.3-4) and one environmental (F-9.3-3).
+Part B (record the public repository link) needs the owner's manual publication.

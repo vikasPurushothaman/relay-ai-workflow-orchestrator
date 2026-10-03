@@ -1,6 +1,8 @@
 """Publication guide check (task 9.1): docs/PUBLICATION.md matches the repository, keeps every
 publication step with the owner, and is linked from the README. Reads files and local git
-state only; never contacts the remote, merges or pushes."""
+state only; never contacts the remote, merges or pushes. The branch and origin assertions
+describe the owner's working repository; in a clone without those local branches (task 9.3
+finding F-9.3-2) they are reported as not applicable and the document assertions still run."""
 from pathlib import Path
 import re
 import subprocess
@@ -16,7 +18,11 @@ def git(*args):
     return subprocess.run(['git', *args], cwd=ROOT, capture_output=True, text=True)
 
 
-def validate(guide, readme):
+def has_branch(name):
+    return git('rev-parse', '--verify', '-q', 'refs/heads/' + name).returncode == 0
+
+
+def validate(guide, readme, branch_exists=has_branch):
     headings = re.findall(r'^## (.+)$', guide, re.M)
     for name in SECTIONS:
         assert any(h.startswith(name) for h in headings), 'Missing section: ' + name
@@ -39,25 +45,34 @@ def validate(guide, readme):
     # The main update is a fast-forward from an existing branch that contains main.
     merges = re.findall(r'^git merge (.+)$', guide, re.M)
     assert merges, 'No merge step'
+    not_applicable = []
     for args in merges:
         assert args.split()[0] == '--ff-only', 'Merge step is not --ff-only: ' + args
         source = args.split()[-1]
-        assert git('rev-parse', '--verify', '-q', 'refs/heads/' + source).returncode == 0, 'Merge source branch missing: ' + source
-        assert git('merge-base', '--is-ancestor', 'main', source).returncode == 0, 'main is not an ancestor of ' + source
+        if branch_exists('main') and branch_exists(source):
+            assert git('merge-base', '--is-ancestor', 'main', source).returncode == 0, 'main is not an ancestor of ' + source
+        else:
+            not_applicable.append(f'ancestry main -> {source} (local branches absent, e.g. a clone)')
     remote = git('remote', 'get-url', 'origin').stdout.strip()
-    if remote:
+    if 'github.com' in remote:
         assert '`' + remote + '`' in guide, 'Guide does not name the configured origin URL'
+    else:
+        not_applicable.append('origin URL (origin is not a GitHub remote here)')
     assert '](docs/PUBLICATION.md)' in readme, 'README does not link the publication guide'
-    return len(headings), len(paths), len(merges)
+    return len(headings), len(paths), len(merges), not_applicable
 
 
 def main():
     guide = (ROOT / 'docs/PUBLICATION.md').read_text()
     readme = (ROOT / 'README.md').read_text()
-    sections, paths, merges = validate(guide, readme)
+    sections, paths, merges, not_applicable = validate(guide, readme)
     print(f'PASS: {sections} sections, owner-only statements and D04 options present; links and scripts resolve')
-    print(f'PASS: {paths} never-commit paths ignored and untracked; {merges} merge step is --ff-only from a branch containing main; '
-          'origin URL named; README links the guide')
+    print(f'PASS: {paths} never-commit paths ignored and untracked; {merges} merge step is --ff-only; README links the guide')
+    print('PASS: repository state (main ancestry, origin URL) ' + ('checked' if not not_applicable else
+          'not applicable here: ' + '; '.join(not_applicable)))
+    # Clone case (F-9.3-2): without the owner's local branches the document assertions still pass.
+    assert validate(guide, readme, branch_exists=lambda name: name == 'main')[3], 'Clone case not reported as not applicable'
+    print('PASS: clone without the working branch is accepted with ancestry reported as not applicable')
     mutations = [
         ('removed owner-only statement', 0, lambda g: g.replace('**Only the owner runs the publication steps.**', '', 1)),
         ('broken link', 0, lambda g: g.replace('](DEMO.md)', '](DEMO_MISSING.md)', 1)),
@@ -77,7 +92,7 @@ def main():
             print('PASS: rejects ' + label)
         else:
             raise AssertionError('Undetected mutation: ' + label)
-    print(f'{2 + len(mutations)} checks passed. Local files and git state only; nothing pushed.')
+    print(f'{4 + len(mutations)} checks passed. Local files and git state only; nothing pushed.')
 
 
 if __name__ == '__main__':

@@ -320,7 +320,7 @@ It runs these stages in order: `backend` (unit tests and jar), `mysql` (real-MyS
 | --- | --- |
 | `--skip STAGE` | Leave a stage out, for example `--skip mysql` without Docker; the summary reports it as not run |
 | `--only STAGE` | Run only the named stages (repeatable) |
-| `--install` | Run `npm ci` before the frontend stage (fresh clone) |
+| `--install` | Fresh clone: run `npm ci` and create `frontend/.env.local` from `frontend/.env.example` if it is missing (never overwritten) before the frontend stage |
 | `--offline` | Pass `--offline` to Gradle once dependencies are cached |
 
 On a fresh clone, run `python3 scripts/run_checks.py --install` once; Gradle and npm need network access the first time, and the browser stage needs `npx playwright install chromium` (from `frontend/`). The individual commands follow.

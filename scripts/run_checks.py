@@ -32,7 +32,7 @@ SERVICE_CHECKS = {'check_backend_smoke', 'check_component_startup', 'check_local
 HINTS = {
     'backend': 'see the log; on a new machine run without --offline once so Gradle can download dependencies',
     'mysql': 'start Docker (Docker Desktop or the docker engine) and re-run, or pass --skip mysql',
-    'frontend': 'cd frontend && nvm use && npm ci (or pass --install)',
+    'frontend': 'cd frontend && nvm use && npm ci && cp -n .env.example .env.local (or pass --install)',
     'browser': 'cd frontend && npx playwright install chromium; the frontend stage must build dist/ first',
     'scripts': 'see the log for the failing unittest',
     'docs': 'run the failing scripts/check_*.py directly to see its assertion',
@@ -126,6 +126,18 @@ def modules_problem():
     return None if (FRONTEND / 'node_modules').is_dir() else 'frontend/node_modules missing (npm ci, or pass --install)'
 
 
+def env_problem():
+    return None if (FRONTEND / '.env.local').is_file() else 'frontend/.env.local missing (cp -n frontend/.env.example frontend/.env.local, or pass --install)'
+
+
+def ensure_env():
+    """--install: create frontend/.env.local from the example, as the README console step does; never overwrite."""
+    target = FRONTEND / '.env.local'
+    if not target.exists():
+        shutil.copyfile(FRONTEND / '.env.example', target)
+    return None
+
+
 def dist_problem():
     return None if (FRONTEND / 'dist/index.html').is_file() else 'frontend/dist missing (run the frontend stage first)'
 
@@ -155,7 +167,7 @@ def stage_plan(name, args):
                                                  lambda _: junit_counts(BACKEND / 'build/test-results/testcontainersTest'))]
     if name == 'frontend':
         install = [(['npm', 'ci'], FRONTEND, None)] if args.install else []
-        return ([node_problem] + ([] if args.install else [modules_problem]),
+        return ([node_problem] + ([ensure_env] if args.install else [modules_problem, env_problem]),
                 install + [(['npm', 'test'], FRONTEND, node_counts), (['npm', 'run', 'build'], FRONTEND, None)])
     if name == 'browser':
         return [node_problem, modules_problem, dist_problem], [(['npx', 'playwright', 'test'], FRONTEND, playwright_counts)]

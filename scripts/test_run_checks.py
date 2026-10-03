@@ -45,6 +45,8 @@ class RunChecksTest(unittest.TestCase):
         (frontend / 'node_modules').mkdir(parents=True)
         (frontend / 'dist').mkdir()
         (frontend / 'dist/index.html').write_text('<html>')
+        (frontend / '.env.example').write_text('VITE_RELAY_API_BASE_URL=http://localhost:8080\n')
+        (frontend / '.env.local').write_text('VITE_RELAY_API_BASE_URL=http://localhost:8080\n')
         backend.mkdir()
         self.backend = backend
         self.patches = [mock.patch.object(rc, 'LOGS', self.tmp / 'logs'), mock.patch.object(rc, 'BACKEND', backend),
@@ -118,6 +120,22 @@ class RunChecksTest(unittest.TestCase):
         code, text, fake = self.run_main(['--only', 'frontend', '--install'])
         self.assertEqual(code, 0)
         self.assertEqual(fake.calls, ['npm ci', 'npm test', 'npm run build'])
+
+    def test_missing_env_local_fails_without_install(self):
+        (rc.FRONTEND / '.env.local').unlink()
+        code, text, fake = self.run_main(['--only', 'frontend'])
+        self.assertEqual(code, 1)
+        self.assertIn('frontend/.env.local missing', self.row(text, 'frontend'))
+        self.assertEqual(fake.calls, [])
+
+    def test_install_creates_env_local_from_example_and_never_overwrites(self):
+        (rc.FRONTEND / '.env.local').unlink()
+        code, _, fake = self.run_main(['--only', 'frontend', '--install'])
+        self.assertEqual(code, 0)
+        self.assertEqual((rc.FRONTEND / '.env.local').read_text(), (rc.FRONTEND / '.env.example').read_text())
+        (rc.FRONTEND / '.env.local').write_text('VITE_RELAY_API_BASE_URL=http://localhost:9999\n')
+        self.run_main(['--only', 'frontend', '--install'])
+        self.assertIn('9999', (rc.FRONTEND / '.env.local').read_text())
 
     def test_skip_reports_not_run_and_is_not_counted(self):
         code, text, fake = self.run_main(['--skip', 'mysql'])
