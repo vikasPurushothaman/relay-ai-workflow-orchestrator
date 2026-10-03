@@ -39,3 +39,6 @@ Thumbs.db
 # Browser verification output.
 /frontend/test-results/
 /frontend/playwright-report/
+
+#demo vide
+docs/VIDEO_SCRIPT.md

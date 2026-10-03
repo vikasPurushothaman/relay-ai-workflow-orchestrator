@@ -308,6 +308,23 @@ Delays and retry deadlines live in MySQL, not in sleeping worker threads. Approv
 
 ## Testing
 
+Run every automated suite with one command from the repository root (Java 21, the Node version in `frontend/.nvmrc`, and Docker running for the MySQL stage):
+
+```sh
+python3 scripts/run_checks.py
+```
+
+It runs these stages in order: `backend` (unit tests and jar), `mysql` (real-MySQL Testcontainers suite), `frontend` (unit tests, type check and build), `browser` (mocked Chromium suite), `scripts` (every `scripts/test_*.py`) and `docs` (every document check). Before each stage it checks the prerequisites; a missing one fails that stage with a hint instead of skipping it. Gradle test tasks always re-execute (`--rerun`), so cached results are never reported. A summary table lists each stage's status, test counts and log (`tmp/checks/<stage>.log`). The exit status is 0 only when no stage failed. Options:
+
+| Option | Effect |
+| --- | --- |
+| `--skip STAGE` | Leave a stage out, for example `--skip mysql` without Docker; the summary reports it as not run |
+| `--only STAGE` | Run only the named stages (repeatable) |
+| `--install` | Run `npm ci` before the frontend stage (fresh clone) |
+| `--offline` | Pass `--offline` to Gradle once dependencies are cached |
+
+On a fresh clone, run `python3 scripts/run_checks.py --install` once; Gradle and npm need network access the first time, and the browser stage needs `npx playwright install chromium` (from `frontend/`). The individual commands follow.
+
 Backend unit tests and executable JAR (no Docker needed):
 
 ```sh
@@ -427,6 +444,7 @@ The full list with evidence is in [docs/VERIFICATION_REPORT.md](docs/VERIFICATIO
 - [Console demo](docs/CONSOLE_DEMO.md)
 - [Demo script](docs/DEMO.md)
 - [Verification report](docs/VERIFICATION_REPORT.md)
+- [Manual publication guide](docs/PUBLICATION.md)
 - [Roadmap and completion log](PROJECT_PLAN.md)
 
 ## Publication
@@ -438,3 +456,5 @@ Before publishing, run the pre-publication check from the repository root. It co
 ```sh
 python3 scripts/check_no_secrets.py
 ```
+
+The full step-by-step owner checklist (checks, the pack licence decision, updating `main`, repository visibility and what to record afterwards) is in the [manual publication guide](docs/PUBLICATION.md).
